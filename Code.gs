@@ -1,19 +1,19 @@
 var SHEET_ID = '1PSjeQNzz_Vz_eYmz1XHpvsGm44mYwozQnPDOdJdmb38';
 
 var TABS = {
-  students:     ['id','name','niche','color','pin','bio'],
-  weeks:        ['student_id','week_key','goal_title','goal_done','review'],
-  projects:     ['student_id','name','desc','status'],
+  students: ['id','name','niche','color','pin','bio'],
+  weeks: ['student_id','week_key','goal_title','goal_done','review'],
+  projects: ['student_id','name','desc','status'],
   achievements: ['student_id','title','desc','date','created'],
-  reactions:    ['student_id','achievement_idx','reactor_id','emoji']
+  reactions: ['student_id','achievement_idx','reactor_id','emoji']
 };
 
 var SEED_STUDENTS = [
-  ['andy',    'Andy Montes', 'Estrategia de datos - IA',    '#FF1493', '1111', 'Retail and Consumer Behavior Specialist'],
-  ['claire',  'Claire',      'UX Estrategica - Flex',       '#00B8C4', '5555', 'Completa tu perfil cuando entres'],
-  ['erika',   'Erika',       'Educacion matematica',        '#FFD60A', '3333', 'Completa tu perfil cuando entres'],
-  ['carla',   'Carla',       'Psicologia adolescente',      '#BF00FF', '2222', 'Completa tu perfil cuando entres'],
-  ['antonio', 'Antonio',     'Facilitador - Estrategia',    '#A8FF00', '4444', 'Completa tu perfil cuando entres']
+  ['andy','Andy Montes','Estrategia de datos - IA','#FF1493','1111','Retail and Consumer Behavior Specialist'],
+  ['claire','Claire','UX Estrategica - Flex','#00B8C4','5555','Completa tu perfil cuando entres'],
+  ['erika','Erika','Educacion matematica','#FFD60A','3333','Completa tu perfil cuando entres'],
+  ['carla','Carla','Psicologia adolescente','#BF00FF','2222','Completa tu perfil cuando entres'],
+  ['antonio','Antonio','Facilitador - Estrategia','#A8FF00','4444','Completa tu perfil cuando entres']
 ];
 
 function setup() {
@@ -24,7 +24,7 @@ function setup() {
     sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
   });
   var students = ss.getSheetByName('students');
-  students.getRange(2, 1, SEED_STUDENTS.length, SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
+  students.getRange(2,1,SEED_STUDENTS.length,SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
   return 'ok';
 }
 
@@ -60,11 +60,11 @@ function doGet(e) {
   try {
     return _json({
       ok: true,
-      students:     _read('students').map(function(s){ delete s.pin; return s; }),
-      weeks:        _read('weeks'),
-      projects:     _read('projects'),
+      students: _read('students').map(function(s){ delete s.pin; return s; }),
+      weeks: _read('weeks'),
+      projects: _read('projects'),
       achievements: _read('achievements'),
-      reactions:    _read('reactions')
+      reactions: _read('reactions')
     });
   } catch (err) {
     return _json({ ok:false, error: err.message });
@@ -79,7 +79,6 @@ function doPost(e) {
     var studentId = body.student_id;
     var pinOwner = (action === 'addReaction') ? body.reactor_id : studentId;
     _checkPin(pinOwner, pin);
-
     var handlers = {
       saveGoal: saveGoal,
       toggleGoal: toggleGoal,
