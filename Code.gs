@@ -1,14 +1,4 @@
-/**
- * Almuercito Tech — Backend Apps Script
- *
- * Pasos de uso:
- *  1) Ejecutar setup() UNA SOLA VEZ (crea el Sheet y poblará students).
- *  2) Copiar el ID del Sheet que se imprime en el log a SHEET_ID (abajo) y guardar.
- *  3) Deploy → New deployment → Web app → Execute as: Me · Who has access: Anyone.
- *  4) Copiar la URL del Web App.
- */
-
-var SHEET_ID = ''; // ← pegar el ID que imprime setup()
+var SHEET_ID = '1PSjeQNzz_Vz_eYmz1XHpvsGm44mYwozQnPDOdJdmb38';
 
 var TABS = {
   students:     ['id','name','niche','color','pin','bio'],
@@ -19,43 +9,27 @@ var TABS = {
 };
 
 var SEED_STUDENTS = [
-  ['andy',    'Andy Montes', 'Estrategia de datos · IA',    '#FF1493', '1111', 'Retail & Consumer Behavior Specialist'],
-  ['claire',  'Claire',      'UX Estratégica · Flex',       '#00B8C4', '5555', 'Completa tu perfil cuando entres'],
-  ['erika',   'Erika',       'Educación matemática',        '#FFD60A', '3333', 'Completa tu perfil cuando entres'],
-  ['carla',   'Carla',       'Psicología adolescente',      '#BF00FF', '2222', 'Completa tu perfil cuando entres'],
-  ['antonio', 'Antonio',     'Facilitador · Estrategia',    '#A8FF00', '4444', 'Completa tu perfil cuando entres']
+  ['andy',    'Andy Montes', 'Estrategia de datos - IA',    '#FF1493', '1111', 'Retail and Consumer Behavior Specialist'],
+  ['claire',  'Claire',      'UX Estrategica - Flex',       '#00B8C4', '5555', 'Completa tu perfil cuando entres'],
+  ['erika',   'Erika',       'Educacion matematica',        '#FFD60A', '3333', 'Completa tu perfil cuando entres'],
+  ['carla',   'Carla',       'Psicologia adolescente',      '#BF00FF', '2222', 'Completa tu perfil cuando entres'],
+  ['antonio', 'Antonio',     'Facilitador - Estrategia',    '#A8FF00', '4444', 'Completa tu perfil cuando entres']
 ];
 
-/** Ejecutar UNA VEZ desde el editor para bootstrapping. */
 function setup() {
-  var ss = SpreadsheetApp.create('Almuercito Tech — Cohort 4');
-  var id = ss.getId();
-
+  var ss = SpreadsheetApp.openById(SHEET_ID);
   Object.keys(TABS).forEach(function(name){
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     sh.clear();
     sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
   });
-
-  // borra la hoja default "Sheet1" / "Hoja 1" si quedó vacía
-  ss.getSheets().forEach(function(sh){
-    if (!TABS[sh.getName()]) ss.deleteSheet(sh);
-  });
-
-  // seed students
   var students = ss.getSheetByName('students');
   students.getRange(2, 1, SEED_STUDENTS.length, SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
-
-  PropertiesService.getScriptProperties().setProperty('SHEET_ID', id);
-  Logger.log('SHEET_ID = ' + id);
-  Logger.log('URL: ' + ss.getUrl());
-  return id;
+  return 'ok';
 }
 
 function _ss() {
-  var id = SHEET_ID || PropertiesService.getScriptProperties().getProperty('SHEET_ID');
-  if (!id) throw new Error('SHEET_ID no configurado. Ejecuta setup() primero.');
-  return SpreadsheetApp.openById(id);
+  return SpreadsheetApp.openById(SHEET_ID);
 }
 
 function _read(name) {
@@ -71,16 +45,14 @@ function _read(name) {
 }
 
 function _json(obj) {
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function _checkPin(studentId, pin) {
   var rows = _read('students');
   var s = rows.filter(function(r){ return String(r.id) === String(studentId); })[0];
   if (!s) throw new Error('Estudiante no existe');
-  if (String(s.pin) !== String(pin)) throw new Error('PIN inválido');
+  if (String(s.pin) !== String(pin)) throw new Error('PIN invalido');
   return true;
 }
 
@@ -105,30 +77,25 @@ function doPost(e) {
     var action = body.action;
     var pin = body.pin;
     var studentId = body.student_id;
-
-    // Reacciones no exigen PIN del autor del logro, pero sí del que reacciona
     var pinOwner = (action === 'addReaction') ? body.reactor_id : studentId;
     _checkPin(pinOwner, pin);
 
     var handlers = {
-      saveGoal:     saveGoal,
-      toggleGoal:   toggleGoal,
-      saveReview:   saveReview,
-      saveProj:     saveProj,
-      saveAch:      saveAch,
-      addReaction:  addReaction,
-      deleteItem:   deleteItem
+      saveGoal: saveGoal,
+      toggleGoal: toggleGoal,
+      saveReview: saveReview,
+      saveProj: saveProj,
+      saveAch: saveAch,
+      addReaction: addReaction,
+      deleteItem: deleteItem
     };
-    if (!handlers[action]) throw new Error('Acción inválida: ' + action);
-
+    if (!handlers[action]) throw new Error('Accion invalida: ' + action);
     var result = handlers[action](body);
     return _json({ ok:true, result: result });
   } catch (err) {
     return _json({ ok:false, error: err.message });
   }
 }
-
-// ---------- handlers ----------
 
 function _findRow(sheetName, predicate) {
   var sh = _ss().getSheetByName(sheetName);
@@ -181,7 +148,6 @@ function saveReview(b) {
 function saveProj(b) {
   var sh = _ss().getSheetByName('projects');
   if (b.index != null) {
-    // update by 0-based index across student's projects
     var all = _read('projects');
     var idx = -1, count = -1;
     for (var i=0; i<all.length; i++) {
@@ -207,7 +173,6 @@ function saveAch(b) {
 
 function addReaction(b) {
   var sh = _ss().getSheetByName('reactions');
-  // evitar reacción duplicada del mismo reactor con el mismo emoji en el mismo logro
   var all = _read('reactions');
   var dup = all.some(function(r){
     return r.student_id === b.student_id
@@ -221,10 +186,8 @@ function addReaction(b) {
 }
 
 function deleteItem(b) {
-  // b.table: 'weeks' | 'projects' | 'achievements'
-  // b.index: 0-based dentro de las filas del student_id
   var table = b.table;
-  if (!TABS[table]) throw new Error('Tabla inválida');
+  if (!TABS[table]) throw new Error('Tabla invalida');
   var sh = _ss().getSheetByName(table);
   var all = _read(table);
   var count = -1, target = -1;
