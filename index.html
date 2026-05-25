@@ -88,6 +88,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .mobpeople{position:fixed;bottom:62px;left:0;right:0;background:var(--bg);border-top:2px solid var(--border);z-index:299;display:none;max-height:55vh;overflow-y:auto;padding:6px 0}
 .mobpeople.on{display:block}
 
+/* TOUR PANEL */
+#tourPanel{position:fixed;bottom:78px;left:14px;right:14px;background:var(--bg);border:2px solid var(--m);border-radius:14px;padding:18px;z-index:450;box-shadow:0 12px 40px rgba(0,0,0,.25);display:none;max-width:480px;margin:0 auto}
+#tourPanel.on{display:block;animation:tourIn .25s ease}
+@keyframes tourIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(min-width:768px){#tourPanel{bottom:24px;left:24px;right:auto;max-width:420px}}
+.tour-hl{position:relative;z-index:440;outline:3px solid var(--m);outline-offset:4px;border-radius:8px;animation:tourPulse 1.4s ease infinite}
+@keyframes tourPulse{0%,100%{outline-color:var(--m)}50%{outline-color:transparent}}
+
 /* BOTÓN AYUDA FLOTANTE */
 #helpFab{position:fixed;right:18px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--m);color:#fff;border:none;font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(255,20,147,.45);z-index:250;display:flex;align-items:center;justify-content:center;transition:transform .15s}
 #helpFab:hover{transform:scale(1.08)}
@@ -154,7 +162,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 @media(min-width:500px){.ov-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}}
 </style>
 </head>
-<body class="dark">
+<body class="light">
 
 <!-- SELECCIÓN -->
 <div id="scSelect" class="on">
@@ -193,20 +201,20 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   <div class="modal" id="genModal"></div>
 </div>
 
-<!-- TOUR GUIADO -->
-<div class="overlay" id="tourOv" style="z-index:500">
-  <div class="modal" style="max-width:440px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+<!-- TOUR GUIADO (panel inferior) -->
+<div id="tourPanel">
+  <div style="display:flex;align-items:center;gap:14px;margin-bottom:6px">
+    <div id="tourEmoji" style="font-size:32px;flex-shrink:0">👋</div>
+    <div style="flex:1;min-width:0">
+      <div class="mt" id="tourTitle" style="font-size:17px;margin-bottom:2px"></div>
       <div style="display:flex;gap:4px" id="tourDots"></div>
-      <button class="bs bsm" onclick="endTour()" style="padding:6px 12px;font-size:12px">Saltar</button>
     </div>
-    <div style="font-size:46px;text-align:center;margin-bottom:10px" id="tourEmoji">👋</div>
-    <div class="mt" id="tourTitle" style="text-align:center"></div>
-    <div class="ms" id="tourBody" style="text-align:center;margin-top:10px"></div>
-    <div class="br" style="justify-content:space-between;margin-top:24px">
-      <button class="bs" id="tourPrev" onclick="tourPrev()">← Atrás</button>
-      <button class="bp" id="tourNext" onclick="tourNext()">Siguiente →</button>
-    </div>
+    <button class="bs bsm" onclick="endTour()" style="padding:6px 12px;font-size:12px;flex-shrink:0">Saltar</button>
+  </div>
+  <div id="tourBody" style="font-size:15px;color:var(--text3);line-height:1.5;margin-bottom:14px"></div>
+  <div style="display:flex;gap:10px;justify-content:space-between">
+    <button class="bs bsm" id="tourPrev" onclick="tourPrev()">← Atrás</button>
+    <button class="bp" id="tourNext" onclick="tourNext()" style="padding:10px 22px">Siguiente →</button>
   </div>
 </div>
 
@@ -336,7 +344,7 @@ function saveData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({stud
 // ── ESTADO ──
 var students = loadData();
 var me = null, viewing = null, screen = 'ov', tab = 'week', viewingWeek = null;
-var pinTarget = null, isDark = true;
+var pinTarget = null, isDark = false;
 
 function ini(n){ return (n||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase(); }
 function todayStr(){ return new Date().toISOString().split('T')[0]; }
@@ -978,33 +986,47 @@ function submitChangePin(){
 // ══════════════════════════════════════
 var TOUR_KEY = 'amt_tour_seen_v1';
 var DEFAULT_PINS = {andy:'1111', carla:'2222', erika:'3333', antonio:'4444', claire:'5555'};
+
+// Cada paso opcionalmente navega a una sección y resalta un elemento (#id)
 var TOUR_STEPS = [
-  {emoji:'👋', title:'Hola, te damos la bienvenida',
-    body:'Esta app es del grupo de 5. Cada semana se anotan una meta chica, cómo les fue, sus proyectos y sus logros. Te muestro las 5 cosas que puedes hacer aquí.'},
-  {emoji:'📋', title:'Esta semana',
-    body:'Escribe una meta concreta para los próximos 7 días. Una sola, simple, que sepas si la cumpliste o no. El lunes empiezas semana nueva.'},
-  {emoji:'💬', title:'Cómo me fue',
-    body:'Al final de la semana cuenta qué pasó: qué te funcionó, qué no, qué aprendiste. Es como un diario corto para mirar atrás.'},
-  {emoji:'🚀', title:'Mis proyectos',
-    body:'Anota en qué estás trabajando ahora — los proyectos más largos que no caben en una semana. Marca si están Activo, Pausado o Listo.'},
-  {emoji:'🏆', title:'Mis logros',
-    body:'Cuando termines algo importante, súbelo a logros. El grupo puede reaccionar con 🔥💪🎉 y se queda guardado para siempre.'},
+  {emoji:'👋', title:'Hola',
+    body:'Esta app es del grupo de 5. Te muestro en 1 minuto cómo se usa. Avanza con "Siguiente".',
+    action: function(){ showOv(); }},
+  {emoji:'⊞', title:'Vista Resumen',
+    body:'Aquí ves al grupo y cómo van. Cada persona tiene una plantita que crece si cumple metas. Tú eres uno de ellos.',
+    action: function(){ showOv(); }, highlight:'mainArea'},
+  {emoji:'👤', title:'Tu perfil',
+    body:'Ahora abrimos tu perfil. Aquí escribes lo tuyo: meta de la semana, cómo te fue, proyectos y logros.',
+    action: function(){ if(me){ clickStudent(me.id); switchTab('week'); } }},
+  {emoji:'📋', title:'1. Esta semana',
+    body:'Anota UNA meta concreta para los próximos 7 días. Simple, que sepas si la cumpliste o no. El lunes empieza semana nueva.',
+    action: function(){ switchTab('week'); }, highlight:'tabContent'},
+  {emoji:'💬', title:'2. Cómo me fue',
+    body:'Al final de la semana cuenta qué pasó: qué funcionó, qué no, qué aprendiste. Un diario corto.',
+    action: function(){ switchTab('review'); }, highlight:'tabContent'},
+  {emoji:'🚀', title:'3. Mis proyectos',
+    body:'Lo que estás trabajando en general (lo que no cabe en una semana). Marca si está Activo, Pausado o Listo.',
+    action: function(){ switchTab('proj'); }, highlight:'tabContent'},
+  {emoji:'🏆', title:'4. Mis logros',
+    body:'Cuando termines algo importante, súbelo. El grupo reacciona con 🔥💪🎉 y queda guardado.',
+    action: function(){ switchTab('ach'); }, highlight:'tabContent'},
   {emoji:'👥', title:'Logros del grupo',
-    body:'En la sección "Logros" ves todo lo que el grupo ha logrado. Reacciona, celebra, inspírate. Es la pared de la fama.'},
-  {emoji:'🌱', title:'Tu plantita',
-    body:'Cada quien tiene una plantita que crece si cumples metas semana a semana. Si dejas pasar semanas sin meta, vuelve a ser semilla.'},
-  {emoji:'⚙️', title:'Tus opciones',
-    body:'Arriba a la derecha (⚙️) puedes cambiar tu PIN cuando quieras, ver este tour de nuevo, o cambiar el tema. ¡Listo!'}
+    body:'Aquí ves todo lo que el grupo ha logrado. Reacciona, celebra, inspírate.',
+    action: function(){ showWall(); }, highlight:'mainArea'},
+  {emoji:'?', title:'Si te pierdes',
+    body:'Este botón rosado abajo a la derecha (?) te trae el tour de vuelta cuando quieras. En ⚙️ arriba puedes cambiar tu PIN y el tema. ¡Listo!',
+    action: function(){ showOv(); }, highlight:'helpFab'}
 ];
 var tourIdx = 0;
 
 function startTour(){
   tourIdx = 0;
+  document.getElementById('tourPanel').classList.add('on');
   renderTour();
-  document.getElementById('tourOv').classList.add('on');
 }
 function endTour(){
-  document.getElementById('tourOv').classList.remove('on');
+  document.getElementById('tourPanel').classList.remove('on');
+  clearTourHighlight();
   var wasFirstTime = false;
   try{
     wasFirstTime = !localStorage.getItem(TOUR_KEY);
@@ -1013,6 +1035,10 @@ function endTour(){
   if(wasFirstTime && me && DEFAULT_PINS[me.id] === me.pin){
     setTimeout(openFirstPinChange, 300);
   }
+}
+function clearTourHighlight(){
+  var prev = document.querySelectorAll('.tour-hl');
+  prev.forEach(function(el){ el.classList.remove('tour-hl'); });
 }
 
 function openFirstPinChange(){
@@ -1055,6 +1081,13 @@ function tourPrev(){
 }
 function renderTour(){
   var step = TOUR_STEPS[tourIdx];
+  clearTourHighlight();
+  if(step.action) try{ step.action(); }catch(e){}
+  if(step.highlight) setTimeout(function(){
+    var el = document.getElementById(step.highlight);
+    if(el) el.classList.add('tour-hl');
+  }, 80);
+
   document.getElementById('tourEmoji').textContent = step.emoji;
   document.getElementById('tourTitle').textContent = step.title;
   document.getElementById('tourBody').textContent = step.body;
