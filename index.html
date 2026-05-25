@@ -188,6 +188,23 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
   <div class="modal" id="genModal"></div>
 </div>
 
+<!-- TOUR GUIADO -->
+<div class="overlay" id="tourOv" style="z-index:500">
+  <div class="modal" style="max-width:440px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;gap:4px" id="tourDots"></div>
+      <button class="bs bsm" onclick="endTour()" style="padding:6px 12px;font-size:12px">Saltar</button>
+    </div>
+    <div style="font-size:46px;text-align:center;margin-bottom:10px" id="tourEmoji">👋</div>
+    <div class="mt" id="tourTitle" style="text-align:center"></div>
+    <div class="ms" id="tourBody" style="text-align:center;margin-top:10px"></div>
+    <div class="br" style="justify-content:space-between;margin-top:24px">
+      <button class="bs" id="tourPrev" onclick="tourPrev()">← Atrás</button>
+      <button class="bp" id="tourNext" onclick="tourNext()">Siguiente →</button>
+    </div>
+  </div>
+</div>
+
 <!-- APP -->
 <div id="scApp">
   <div class="hdr">
@@ -200,6 +217,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
         <span id="themeIcon2">☀️</span>
         <span id="themeLabel2" style="display:none">Claro</span>
       </button>
+      <button class="bs bsm" onclick="openMeMenu()" title="Tus opciones" style="padding:8px 12px;font-size:16px">⚙️</button>
       <button class="bs bsm" onclick="goSelect()" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
         <div id="hdrAv" style="width:24px;height:24px;border-radius:4px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff"></div>
         <span id="hdrNom">—</span>
@@ -397,6 +415,7 @@ function submitPin(){
     document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
     screen='ov'; tab='week'; viewingWeek=null;
     goApp(); renderSidebar(); showOv();
+    maybeAutoTour();
   } else {
     document.getElementById('pinErr').style.display = 'block';
     document.getElementById('pinInp').value = '';
@@ -886,6 +905,123 @@ function togglePeople(){
 function closePeople(){
   var el=document.getElementById('mobPeople');
   if(el) el.classList.remove('on');
+}
+
+// ══════════════════════════════════════
+// MENÚ DE USUARIO (⚙️)
+// ══════════════════════════════════════
+function openMeMenu(){
+  if(!me) return;
+  var m = document.getElementById('genModal');
+  m.innerHTML =
+    '<div class="mt">Hola '+me.name.split(' ')[0]+'</div>'
+    +'<div class="ms">Configura tu cuenta.</div>'
+    +'<div style="display:flex;flex-direction:column;gap:10px;margin-top:18px">'
+      +'<button class="bs" style="justify-content:flex-start;text-align:left;padding:16px" onclick="closeModal();openChangePin()">🔐 &nbsp;Cambiar mi PIN</button>'
+      +'<button class="bs" style="justify-content:flex-start;text-align:left;padding:16px" onclick="closeModal();startTour()">🧭 &nbsp;Ver el tour de nuevo</button>'
+      +'<button class="bs" style="justify-content:flex-start;text-align:left;padding:16px" onclick="closeModal();toggleTheme()">'+(isDark?'☀️ &nbsp;Cambiar a claro':'🌙 &nbsp;Cambiar a oscuro')+'</button>'
+      +'<button class="bs" style="justify-content:flex-start;text-align:left;padding:16px;color:#ff6b6b" onclick="closeModal();goSelect()">↔ &nbsp;Cambiar de persona</button>'
+    +'</div>'
+    +'<div class="br"><button class="bs" onclick="closeModal()">Cerrar</button></div>';
+  document.getElementById('genOv').classList.add('on');
+}
+
+// ══════════════════════════════════════
+// CAMBIAR PIN
+// ══════════════════════════════════════
+function openChangePin(){
+  var m = document.getElementById('genModal');
+  m.innerHTML =
+    '<div class="mt">Cambia tu PIN</div>'
+    +'<div class="ms">Solo tú sabes tu PIN. Anótalo en un lugar seguro: si lo olvidas no se puede recuperar sin avisarle al grupo.</div>'
+    +'<div class="ig"><label class="lbl">PIN actual</label>'
+      +'<input type="password" inputmode="numeric" id="cpOld" maxlength="4" placeholder="• • • •" style="text-align:center;font-size:28px;letter-spacing:10px;font-weight:700"></div>'
+    +'<div class="ig"><label class="lbl">PIN nuevo (4 números)</label>'
+      +'<input type="password" inputmode="numeric" id="cpNew" maxlength="4" placeholder="• • • •" style="text-align:center;font-size:28px;letter-spacing:10px;font-weight:700"></div>'
+    +'<div class="ig"><label class="lbl">Repite el PIN nuevo</label>'
+      +'<input type="password" inputmode="numeric" id="cpNew2" maxlength="4" placeholder="• • • •" style="text-align:center;font-size:28px;letter-spacing:10px;font-weight:700"></div>'
+    +'<div id="cpErr" style="display:none;color:#ff6b6b;font-size:14px;font-weight:700;text-align:center;margin-bottom:10px"></div>'
+    +'<div class="br"><button class="bs" onclick="closeModal()">Cancelar</button><button class="bp" onclick="submitChangePin()">Guardar PIN</button></div>';
+  document.getElementById('genOv').classList.add('on');
+  setTimeout(function(){document.getElementById('cpOld').focus();}, 100);
+}
+
+function submitChangePin(){
+  var oldP = document.getElementById('cpOld').value.trim();
+  var newP = document.getElementById('cpNew').value.trim();
+  var newP2 = document.getElementById('cpNew2').value.trim();
+  var err = document.getElementById('cpErr');
+  err.style.display = 'none';
+
+  function showErr(msg){ err.textContent = msg; err.style.display = 'block'; }
+
+  if(oldP !== me.pin){ showErr('Tu PIN actual no coincide.'); return; }
+  if(!/^[0-9]{4}$/.test(newP)){ showErr('El PIN nuevo debe ser 4 números.'); return; }
+  if(newP !== newP2){ showErr('Los dos PIN nuevos no coinciden.'); return; }
+  if(newP === oldP){ showErr('El PIN nuevo debe ser distinto del actual.'); return; }
+
+  updateMe(function(s){ s.pin = newP; return s; });
+  closeModal();
+  notify('🔐 PIN actualizado. No lo olvides.');
+}
+
+// ══════════════════════════════════════
+// TOUR GUIADO
+// ══════════════════════════════════════
+var TOUR_KEY = 'amt_tour_seen_v1';
+var TOUR_STEPS = [
+  {emoji:'👋', title:'Bienvenida a Almuercito Tech',
+    body:'Esta app es de las 5. Cada semana se anotan una meta chica, cómo les fue, sus proyectos y sus logros. Te muestro las 5 cosas que puedes hacer.'},
+  {emoji:'📋', title:'Esta semana',
+    body:'Escribe una meta concreta para los próximos 7 días. Una sola, simple, que sepas si la cumpliste o no. El lunes empiezas semana nueva.'},
+  {emoji:'💬', title:'Cómo me fue',
+    body:'Al final de la semana cuenta qué pasó: qué te funcionó, qué no, qué aprendiste. Es como un diario corto para mirar atrás.'},
+  {emoji:'🚀', title:'Mis proyectos',
+    body:'Anota en qué estás trabajando ahora — los proyectos más largos que no caben en una semana. Marca si están Activo, Pausado o Listo.'},
+  {emoji:'🏆', title:'Mis logros',
+    body:'Cuando termines algo importante, súbelo a logros. El grupo puede reaccionar con 🔥💪🎉 y se queda guardado para siempre.'},
+  {emoji:'👥', title:'Logros del grupo',
+    body:'En la sección "Logros" ves todo lo que el grupo ha logrado. Reacciona, celebra, inspírate. Es la pared de la fama.'},
+  {emoji:'🌱', title:'Tu plantita',
+    body:'Cada quien tiene una plantita que crece si cumples metas semana a semana. Si dejas pasar semanas sin meta, vuelve a ser semilla.'},
+  {emoji:'⚙️', title:'Tus opciones',
+    body:'Arriba a la derecha (⚙️) puedes cambiar tu PIN cuando quieras, ver este tour de nuevo, o cambiar el tema. ¡Listo!'}
+];
+var tourIdx = 0;
+
+function startTour(){
+  tourIdx = 0;
+  renderTour();
+  document.getElementById('tourOv').classList.add('on');
+}
+function endTour(){
+  document.getElementById('tourOv').classList.remove('on');
+  try{ localStorage.setItem(TOUR_KEY, '1'); }catch(e){}
+}
+function tourNext(){
+  if(tourIdx < TOUR_STEPS.length - 1){ tourIdx++; renderTour(); }
+  else endTour();
+}
+function tourPrev(){
+  if(tourIdx > 0){ tourIdx--; renderTour(); }
+}
+function renderTour(){
+  var step = TOUR_STEPS[tourIdx];
+  document.getElementById('tourEmoji').textContent = step.emoji;
+  document.getElementById('tourTitle').textContent = step.title;
+  document.getElementById('tourBody').textContent = step.body;
+  var dots = TOUR_STEPS.map(function(_,i){
+    return '<div style="width:7px;height:7px;border-radius:50%;background:'+(i===tourIdx?'var(--m)':'var(--border2)')+';transition:background .2s"></div>';
+  }).join('');
+  document.getElementById('tourDots').innerHTML = dots;
+  document.getElementById('tourPrev').style.visibility = (tourIdx===0?'hidden':'visible');
+  document.getElementById('tourNext').textContent = (tourIdx === TOUR_STEPS.length - 1 ? '¡Listo! ✓' : 'Siguiente →');
+}
+
+function maybeAutoTour(){
+  try{
+    if(!localStorage.getItem(TOUR_KEY)) setTimeout(startTour, 350);
+  }catch(e){}
 }
 
 // ── INICIO ──

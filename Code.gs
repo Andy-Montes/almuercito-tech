@@ -86,7 +86,9 @@ function doPost(e) {
       saveProj: saveProj,
       saveAch: saveAch,
       addReaction: addReaction,
-      deleteItem: deleteItem
+      deleteItem: deleteItem,
+      changePin: changePin,
+      updateProfile: updateProfile
     };
     if (!handlers[action]) throw new Error('Accion invalida: ' + action);
     var result = handlers[action](body);
@@ -181,6 +183,24 @@ function addReaction(b) {
   });
   if (dup) return false;
   sh.appendRow([b.student_id, b.achievement_idx, b.reactor_id, b.emoji]);
+  return true;
+}
+
+function changePin(b) {
+  if (!b.new_pin || !/^[0-9]{4}$/.test(String(b.new_pin))) throw new Error('PIN nuevo debe ser 4 digitos');
+  var found = _findRow('students', function(r){ return r.id === b.student_id; });
+  if (!found) throw new Error('Estudiante no existe');
+  found.sh.getRange(found.row, 5).setValue(String(b.new_pin));
+  return true;
+}
+
+function updateProfile(b) {
+  var found = _findRow('students', function(r){ return r.id === b.student_id; });
+  if (!found) throw new Error('Estudiante no existe');
+  if (b.name != null)  found.sh.getRange(found.row, 2).setValue(b.name);
+  if (b.niche != null) found.sh.getRange(found.row, 3).setValue(b.niche);
+  if (b.color != null) found.sh.getRange(found.row, 4).setValue(b.color);
+  if (b.bio != null)   found.sh.getRange(found.row, 6).setValue(b.bio);
   return true;
 }
 
