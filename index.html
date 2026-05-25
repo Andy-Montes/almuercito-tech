@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Almuercito Tech</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Atkinson Hyperlegible',system-ui,sans-serif;font-size:17px;line-height:1.55;transition:background .2s,color .2s}
+body.dark{--bg:#0a0a0a;--bg2:#161616;--bg3:#1e1e1e;--border:#252525;--border2:#333;--text:#f0f0f0;--text2:#888;--text3:#bbb;--input:#161616}
+body.light{--bg:#f5f4f0;--bg2:#eeecea;--bg3:#fff;--border:#d8d6d2;--border2:#bbb;--text:#111;--text2:#555;--text3:#333;--input:#fff}
+body{background:var(--bg);color:var(--text)}
+:root{--m:#FF1493;--ye:#FFD60A;--gr:#A8FF00;--or:#FF3B00;--pu:#BF00FF;--cy:#00F0FF}
+
+button{font-family:inherit;cursor:pointer;transition:all .15s}
+input,select,textarea{font-family:inherit;background:var(--input);color:var(--text);border:2px solid var(--border2);border-radius:6px;padding:13px 16px;font-size:16px;outline:none;width:100%;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--m)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+.lbl{display:block;font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.ig{margin-bottom:16px}
+
+.bp{background:var(--m);color:#fff;border:none;border-radius:6px;padding:14px 26px;font-size:15px;font-weight:700;min-height:48px}
+.bp:hover{filter:brightness(1.12)}
+.bs{background:transparent;color:var(--text);border:2px solid var(--border2);border-radius:6px;padding:12px 20px;font-size:14px;font-weight:700;min-height:48px}
+.bs:hover{border-color:var(--m)}
+.bsm{padding:9px 16px;font-size:13px;min-height:40px}
+.bd{background:transparent;color:#ff6b6b;border:2px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;min-height:36px}
+.br{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+
+/* PANTALLAS */
+#scSelect{min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px 20px}
+#scSelect.on{display:flex}
+#scApp{display:none;flex-direction:column;height:100vh;overflow:hidden}
+#scApp.on{display:flex}
+
+/* SELECCIÓN */
+.pgrid{display:flex;flex-direction:column;gap:10px;width:100%;max-width:540px}
+.pb{background:var(--bg2);border:2px solid var(--border2);border-radius:10px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:16px;color:var(--text);width:100%;text-align:left;transition:all .15s}
+.pb:hover,.pb:active{border-color:var(--m)}
+.pav{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;color:#fff}
+.pnm{font-size:18px;font-weight:700;line-height:1.2}
+.pni{font-size:13px;color:var(--text3);margin-top:3px}
+.ppl{font-size:20px;margin-left:auto;flex-shrink:0}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center;z-index:400;padding:0}
+.overlay.on{display:flex}
+@media(min-width:600px){.overlay{align-items:center;padding:20px}}
+.modal{background:var(--bg);border:2px solid var(--border2);border-top:4px solid var(--m);border-radius:14px 14px 0 0;padding:28px 24px;width:100%;max-height:92vh;overflow-y:auto}
+@media(min-width:600px){.modal{border-radius:10px;width:460px;max-width:95vw}}
+.modal-lg{width:100%}
+@media(min-width:700px){.modal-lg{width:640px}}
+.mt{font-size:20px;font-weight:700;margin-bottom:6px}
+.ms{font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+
+/* APP */
+.hdr{border-bottom:2px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg);gap:10px}
+.dot{width:9px;height:9px;background:var(--m);border-radius:50%;box-shadow:0 0 10px var(--m);animation:pu 2s ease infinite;flex-shrink:0}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.25}}
+.wrap{display:flex;flex:1;overflow:hidden}
+
+/* SIDEBAR desktop */
+.sb{display:none;flex-direction:column;width:250px;border-right:2px solid var(--border);overflow-y:auto;flex-shrink:0;padding:18px 0;background:var(--bg)}
+@media(min-width:768px){.sb{display:flex}}
+.sbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--text2);padding:0 16px 10px}
+.si{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;border-left:3px solid transparent;min-height:56px;transition:background .15s}
+.si:hover{background:var(--bg2)}
+.si.on{background:var(--bg2);border-left-color:var(--m)}
+.sav{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
+.snm{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sni{font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sdv{height:2px;background:var(--border);margin:12px 16px}
+.snav{padding:12px 16px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text2);border-left:3px solid transparent;min-height:46px;display:flex;align-items:center;gap:8px;transition:all .15s}
+.snav:hover{color:var(--text)}
+.snav.on{color:var(--text);border-left-color:var(--ye);background:var(--bg2)}
+
+/* MAIN */
+.main{flex:1;overflow-y:auto;padding:20px 20px 88px;background:var(--bg)}
+@media(min-width:768px){.main{padding:28px 32px 32px}}
+
+/* BARRA MÓVIL */
+.mobnav{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:2px solid var(--border);display:flex;z-index:300;height:62px}
+@media(min-width:768px){.mobnav{display:none}}
+.mnb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-size:11px;font-weight:700;color:var(--text2);border:none;background:transparent;min-height:62px;padding:0;transition:color .15s}
+.mnb.on{color:var(--m)}
+.mnb span{font-size:20px;line-height:1}
+.mobpeople{position:fixed;bottom:62px;left:0;right:0;background:var(--bg);border-top:2px solid var(--border);z-index:299;display:none;max-height:55vh;overflow-y:auto;padding:6px 0}
+.mobpeople.on{display:block}
+
+/* CONTENIDO */
+.sech{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.sech1{font-size:30px;font-weight:700;line-height:1.1}
+@media(min-width:600px){.sech1{font-size:36px}}
+.eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--m);margin-bottom:8px}
+.help{background:var(--bg2);border:2px solid var(--border);border-left:4px solid var(--ye);border-radius:6px;padding:14px 18px;margin-bottom:20px;font-size:15px;color:var(--text3);line-height:1.5}
+.help strong{color:var(--text)}
+.grid1{display:flex;flex-direction:column;gap:10px}
+.row{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:16px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;transition:background .15s}
+.chk{width:30px;height:30px;border-radius:6px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:17px;font-weight:700;transition:all .15s}
+.prog-bg{height:6px;background:var(--border2);border-radius:3px;overflow:hidden;width:100%}
+.prog-fill{height:100%;background:var(--m);border-radius:3px;transition:width .3s}
+.grid2{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:500px){.grid2{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}}
+.card{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:18px;transition:border-color .15s}
+.card:hover{border-color:var(--m)}
+.empty-state{border-left:3px solid var(--m);padding:24px 0 24px 20px}
+
+/* PERFIL HERO */
+.hero{background:var(--bg2);border:2px solid var(--border);border-top:4px solid var(--m);border-radius:10px;padding:20px;margin-bottom:20px}
+.hero-top{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+.hero-av{width:60px;height:60px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;color:#fff}
+.hero-name{font-size:22px;font-weight:700;line-height:1.2;margin-bottom:4px}
+.hero-niche{font-size:14px;color:var(--text2);font-weight:700;margin-bottom:6px}
+.hero-bio{font-size:15px;color:var(--text3);line-height:1.55}
+.badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+
+/* TABS */
+.tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:24px;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;gap:2px}
+.tab{padding:12px 18px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text2);border-bottom:3px solid transparent;margin-bottom:-2px;transition:color .15s;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;min-height:46px}
+.tab.on{color:var(--text);border-bottom-color:var(--m)}
+.tab:hover{color:var(--text)}
+
+/* REACCIONES */
+.react-btn{background:var(--bg);border:2px solid var(--border);border-radius:20px;padding:7px 13px;font-size:17px;cursor:pointer;min-height:40px;font-family:inherit;color:var(--text);transition:all .15s}
+.react-btn:hover,.react-btn.on{border-color:var(--m);background:var(--bg3)}
+.react-count{font-size:12px;font-weight:700;color:var(--text2);margin-left:3px}
+
+/* TOGGLE */
+.theme-btn{background:var(--bg2);border:2px solid var(--border2);border-radius:20px;padding:9px 14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px;min-height:42px}
+.theme-btn:hover{border-color:var(--m)}
+
+/* NOTIF */
+.notif{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:var(--bg2);border:2px solid var(--gr);border-top:3px solid var(--gr);border-radius:8px;padding:12px 20px;font-size:14px;font-weight:700;color:var(--gr);opacity:0;transition:opacity .3s;pointer-events:none;z-index:600;white-space:nowrap}
+@media(min-width:768px){.notif{bottom:24px;right:24px;left:auto;transform:none}}
+
+/* PLANTA */
+.plant-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
+.plant-emoji{font-size:28px;line-height:1}
+.plant-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);text-align:center}
+
+/* PROYECTOS */
+.proj-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px}
+
+/* OVERVIEW REUNIÓN */
+.ov-card{background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:border-color .15s}
+.ov-card:hover{border-color:var(--m)}
+.ov-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:500px){.ov-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}}
+</style>
+</head>
+<body class="dark">
+
+<!-- SELECCIÓN -->
+<div id="scSelect" class="on">
+  <div style="text-align:center;max-width:540px;width:100%">
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.25em;color:var(--m);margin-bottom:8px">Almuercito Tech</div>
+    <div style="font-size:38px;font-weight:700;line-height:1.1">Elige tu nombre<span style="color:var(--m)">.</span></div>
+    <div style="font-size:16px;color:var(--text2);margin-top:10px">Pincha tu tarjeta. Te pedirá tu PIN.</div>
+  </div>
+  <div class="pgrid" id="profGrid"></div>
+  <button class="theme-btn" onclick="toggleTheme()">
+    <span id="themeIcon">☀️</span><span id="themeLabel">Cambiar a claro</span>
+  </button>
+</div>
+
+<!-- PIN -->
+<div class="overlay" id="pinOv">
+  <div class="modal" style="max-width:340px">
+    <div class="mt">Escribe tu PIN</div>
+    <div class="ms">Son 4 números. Solo tú editas tu perfil.</div>
+    <div class="ig">
+      <input type="password" inputmode="numeric" id="pinInp" maxlength="4" placeholder="• • • •"
+        autocomplete="off" style="text-align:center;font-size:34px;letter-spacing:12px;font-weight:700;min-height:76px">
+      <div id="pinErr" style="display:none;color:#ff6b6b;font-size:14px;font-weight:700;text-align:center;margin-top:10px">
+        PIN incorrecto. Intenta de nuevo.
+      </div>
+    </div>
+    <div class="br">
+      <button class="bs" onclick="closePinModal()">Cancelar</button>
+      <button class="bp" onclick="submitPin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GENÉRICO -->
+<div class="overlay" id="genOv" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="genModal"></div>
+</div>
+
+<!-- APP -->
+<div id="scApp">
+  <div class="hdr">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <div class="dot"></div>
+      <span style="font-size:15px;font-weight:700;white-space:nowrap">Almuercito Tech</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="theme-btn" onclick="toggleTheme()">
+        <span id="themeIcon2">☀️</span>
+        <span id="themeLabel2" style="display:none">Claro</span>
+      </button>
+      <button class="bs bsm" onclick="goSelect()" style="display:flex;align-items:center;gap:8px;white-space:nowrap">
+        <div id="hdrAv" style="width:24px;height:24px;border-radius:4px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff"></div>
+        <span id="hdrNom">—</span>
+        <span style="color:var(--text2)">↔</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="sb" id="sbEl">
+      <div class="sbl">El grupo</div>
+      <div id="sbList"></div>
+      <div class="sdv"></div>
+      <div class="sbl">Vistas</div>
+      <div class="snav" id="navOv" onclick="showOv()">⊞ &nbsp;Resumen</div>
+      <div class="snav" id="navWall" onclick="showWall()">🏆 &nbsp;Logros</div>
+    </div>
+    <div class="main" id="mainArea"></div>
+  </div>
+
+  <!-- BARRA MÓVIL -->
+  <div class="mobnav">
+    <button class="mnb" id="mnOv" onclick="showOv();closePeople()"><span>⊞</span>Resumen</button>
+    <button class="mnb" id="mnWall" onclick="showWall();closePeople()"><span>🏆</span>Logros</button>
+    <button class="mnb" id="mnPpl" onclick="togglePeople()"><span>👥</span>Personas</button>
+  </div>
+  <div class="mobpeople" id="mobPeople"></div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+// ══════════════════════════════════════
+// DATOS
+// ══════════════════════════════════════
+var STORAGE_KEY = 'amt_v1';
+
+var SEED = [
+  {id:'andy',  name:'Andy Montes', niche:'Estrategia de datos · IA', color:'#FF1493', pin:'1111', bio:'Retail & Consumer Behavior Specialist. Consultora, docente y próxima speaker.', weeks:{}, projects:[], achievements:[]},
+  {id:'claire',name:'Claire',      niche:'UX Estratégica · Flex',    color:'#00B8C4', pin:'5555', bio:'Completa tu perfil cuando entres.', weeks:{}, projects:[], achievements:[]},
+  {id:'erika', name:'Erika',       niche:'Educación matemática',     color:'#FFD60A', pin:'3333', bio:'Completa tu perfil cuando entres.', weeks:{}, projects:[], achievements:[]},
+  {id:'carla', name:'Carla',       niche:'Psicología adolescente',   color:'#BF00FF', pin:'2222', bio:'Completa tu perfil cuando entres.', weeks:{}, projects:[], achievements:[]},
+  {id:'antonio',name:'Antonio',    niche:'Facilitador · Estrategia', color:'#A8FF00', pin:'4444', bio:'Completa tu perfil cuando entres.', weeks:{}, projects:[], achievements:[]}
+];
+
+var EMOJIS = ['🔥','💪','🎉','⭐','👏'];
+
+var PROJ_STATUS = {
+  activo:  {label:'Activo',   color:'#A8FF00'},
+  pausado: {label:'Pausado',  color:'#FFD60A'},
+  listo:   {label:'Listo ✓', color:'#FF1493'}
+};
+
+// ── PLANTA: últimas 4 semanas ──
+var PLANTS = [
+  {emoji:'🌱', label:'Semilla',    min:0},
+  {emoji:'🪴', label:'Brote',      min:1},
+  {emoji:'🌿', label:'Creciendo',  min:2},
+  {emoji:'🌳', label:'Establecida',min:3},
+  {emoji:'🌺', label:'Floreciendo',min:4}
+];
+
+function getMonday(d){
+  var dt = d ? new Date(d+'T12:00:00') : new Date();
+  var day = dt.getDay();
+  dt.setDate(dt.getDate() - (day===0?6:day-1));
+  return dt.toISOString().split('T')[0];
+}
+function currentWeek(){ return getMonday(); }
+
+function getPlant(s){
+  var wkey = currentWeek();
+  var weeks = s.weeks || {};
+  var active = 0;
+  // revisar últimas 4 semanas
+  for(var i=0; i<4; i++){
+    var d = new Date(wkey+'T12:00:00');
+    d.setDate(d.getDate() - i*7);
+    var k = getMonday(d.toISOString().split('T')[0]);
+    var w = weeks[k];
+    if(w && w.goals && w.goals.some(function(g){return g.done;})) active++;
+  }
+  // bonus: si tiene logros también
+  var bonus = (s.achievements||[]).length > 0 && active >= 4 ? 1 : 0;
+  var score = Math.min(active + bonus, 4);
+  return PLANTS[score];
+}
+
+// ── STORAGE ──
+function loadData(){
+  try{
+    var r = localStorage.getItem(STORAGE_KEY);
+    if(r){
+      var d = JSON.parse(r);
+      if(d && d.students && d.students.length){
+        // migrar: agregar campos faltantes
+        d.students = d.students.map(function(s){
+          return Object.assign({weeks:{},projects:[],achievements:[]}, s);
+        });
+        return d.students;
+      }
+    }
+  }catch(e){}
+  return JSON.parse(JSON.stringify(SEED));
+}
+function saveData(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify({students:students})); }catch(e){} }
+
+// ── ESTADO ──
+var students = loadData();
+var me = null, viewing = null, screen = 'ov', tab = 'week', viewingWeek = null;
+var pinTarget = null, isDark = true;
+
+function ini(n){ return (n||'?').split(' ').slice(0,2).map(function(w){return w[0];}).join('').toUpperCase(); }
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+function getViewing(){ return students.find(function(s){return s.id===viewing.id;})||viewing; }
+
+function notify(msg){
+  var n = document.getElementById('notif');
+  n.textContent = msg; n.style.opacity = 1;
+  setTimeout(function(){n.style.opacity=0;}, 2600);
+}
+
+function updateMe(fn){
+  students = students.map(function(s){
+    if(s.id !== me.id) return s;
+    return Object.assign({}, s, fn(Object.assign({}, s)));
+  });
+  viewing = getViewing();
+  saveData();
+  renderSidebar();
+  renderMain();
+}
+
+// ── TEMA ──
+function toggleTheme(){
+  isDark = !isDark;
+  document.body.className = isDark ? 'dark' : 'light';
+  syncThemeUI();
+}
+function syncThemeUI(){
+  var i1=document.getElementById('themeIcon'), l1=document.getElementById('themeLabel');
+  var i2=document.getElementById('themeIcon2');
+  var ico = isDark ? '☀️' : '🌙';
+  var lbl = isDark ? 'Cambiar a claro' : 'Cambiar a oscuro';
+  if(i1){i1.textContent=ico; l1.textContent=lbl;}
+  if(i2) i2.textContent=ico;
+}
+
+// ── NAVEGACIÓN ──
+function goSelect(){
+  document.getElementById('scApp').classList.remove('on');
+  document.getElementById('scApp').style.display='none';
+  document.getElementById('scSelect').classList.add('on');
+  document.getElementById('scSelect').style.display='flex';
+}
+function goApp(){
+  document.getElementById('scSelect').classList.remove('on');
+  document.getElementById('scSelect').style.display='none';
+  document.getElementById('scApp').classList.add('on');
+  document.getElementById('scApp').style.display='flex';
+}
+
+// ── SELECCIÓN ──
+function renderSelect(){
+  var g = document.getElementById('profGrid');
+  g.innerHTML = students.map(function(s){
+    var plant = getPlant(s);
+    return '<button class="pb" onclick="clickProfile(\''+s.id+'\')">'
+      +'<div class="pav" style="background:'+s.color+'cc">'+ini(s.name)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="pnm">'+s.name+'</div>'
+      +'<div class="pni">'+s.niche+'</div>'
+      +'</div>'
+      +'<div class="plant-wrap"><div class="plant-emoji">'+plant.emoji+'</div><div class="plant-label">'+plant.label+'</div></div>'
+      +'</button>';
+  }).join('');
+}
+
+function clickProfile(id){
+  pinTarget = id;
+  document.getElementById('pinInp').value = '';
+  document.getElementById('pinErr').style.display = 'none';
+  document.getElementById('pinOv').classList.add('on');
+  setTimeout(function(){document.getElementById('pinInp').focus();}, 100);
+}
+function closePinModal(){ document.getElementById('pinOv').classList.remove('on'); pinTarget=null; }
+function submitPin(){
+  var v = document.getElementById('pinInp').value.trim();
+  var s = students.find(function(x){return x.id===pinTarget;});
+  if(!s) return;
+  if(v === s.pin){
+    me = s; viewing = s; closePinModal();
+    var av = document.getElementById('hdrAv');
+    av.textContent = ini(me.name); av.style.background = me.color+'cc';
+    document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
+    screen='ov'; tab='week'; viewingWeek=null;
+    goApp(); renderSidebar(); showOv();
+  } else {
+    document.getElementById('pinErr').style.display = 'block';
+    document.getElementById('pinInp').value = '';
+    document.getElementById('pinInp').focus();
+  }
+}
+document.getElementById('pinInp').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPin(); });
+
+// ── SIDEBAR ──
+function renderSidebar(){
+  var html = students.map(function(s){
+    var plant = getPlant(s);
+    var on = (viewing && viewing.id===s.id && screen==='stu') ? ' on' : '';
+    return '<div class="si'+on+'" onclick="clickStudent(\''+s.id+'\')">'
+      +'<div class="sav" style="background:'+s.color+'cc">'+ini(s.name)+'</div>'
+      +'<div style="flex:1;min-width:0"><div class="snm">'+s.name.split(' ')[0]+'</div>'
+      +'<div class="sni">'+s.niche+'</div></div>'
+      +'<div style="font-size:18px;flex-shrink:0">'+plant.emoji+'</div>'
+      +'</div>';
+  }).join('');
+  document.getElementById('sbList').innerHTML = html;
+  document.getElementById('navOv').className = 'snav'+(screen==='ov'?' on':'');
+  document.getElementById('navWall').className = 'snav'+(screen==='wall'?' on':'');
+
+  // móvil
+  var mp = document.getElementById('mobPeople');
+  if(mp) mp.innerHTML = students.map(function(s){
+    var plant = getPlant(s);
+    var on = (viewing && viewing.id===s.id && screen==='stu') ? ' on' : '';
+    return '<div class="si'+on+'" onclick="clickStudent(\''+s.id+'\');closePeople()">'
+      +'<div class="sav" style="background:'+s.color+'cc">'+ini(s.name)+'</div>'
+      +'<div style="flex:1;min-width:0"><div class="snm">'+s.name.split(' ')[0]+'</div>'
+      +'<div class="sni">'+s.niche+'</div></div>'
+      +'<div style="font-size:18px;flex-shrink:0">'+plant.emoji+'</div>'
+      +'</div>';
+  }).join('');
+
+  var mnOv = document.getElementById('mnOv');
+  var mnWall = document.getElementById('mnWall');
+  var mnPpl = document.getElementById('mnPpl');
+  if(mnOv) mnOv.className = 'mnb'+(screen==='ov'?' on':'');
+  if(mnWall) mnWall.className = 'mnb'+(screen==='wall'?' on':'');
+  if(mnPpl) mnPpl.className = 'mnb'+(screen==='stu'?' on':'');
+}
+
+function clickStudent(id){
+  var s = students.find(function(x){return x.id===id;});
+  if(s){ viewing=s; screen='stu'; tab='week'; viewingWeek=null; renderSidebar(); renderMain(); }
+}
+function showOv(){ screen='ov'; renderSidebar(); renderMain(); }
+function showWall(){ screen='wall'; renderSidebar(); renderMain(); }
+function renderMain(){
+  if(screen==='ov') renderOverview();
+  else if(screen==='wall') renderWall();
+  else renderProfile();
+}
+
+// ── OVERVIEW ──
+function renderOverview(){
+  var wkey = currentWeek();
+  var d = new Date(wkey+'T12:00:00');
+  var d2 = new Date(d); d2.setDate(d.getDate()+6);
+  var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  var wlabel = 'Semana del '+d.getDate()+' '+MES[d.getMonth()]+' al '+d2.getDate()+' '+MES[d2.getMonth()];
+
+  var cards = students.map(function(s){
+    var w = (s.weeks||{})[wkey] || {goals:[]};
+    var goals = w.goals || [];
+    var done = goals.filter(function(g){return g.done;}).length;
+    var pct = goals.length ? Math.round(done/goals.length*100) : 0;
+    var plant = getPlant(s);
+
+    var goalsHtml = goals.length
+      ? goals.map(function(g){
+          return '<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'
+            +'<div style="width:18px;height:18px;border-radius:3px;border:2px solid '+(g.done?'#A8FF00':'var(--border2)')+';background:'+(g.done?'#A8FF0022':'transparent')+';display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#A8FF00;flex-shrink:0;margin-top:2px">'+(g.done?'✓':'')+'</div>'
+            +'<div style="font-size:14px;font-weight:700;text-decoration:'+(g.done?'line-through':'none')+';color:'+(g.done?'var(--text2)':'var(--text)')+'">'+g.title+'</div>'
+            +'</div>';
+        }).join('')
+      : '<div style="font-size:13px;color:var(--text2);font-style:italic;padding:4px 0">Sin compromisos esta semana</div>';
+
+    return '<div class="ov-card" onclick="clickStudent(\''+s.id+'\')" style="border-top:3px solid '+s.color+'">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">'
+      +'<div style="width:40px;height:40px;border-radius:6px;background:'+s.color+'cc;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0">'+ini(s.name)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700">'+s.name.split(' ')[0]+'</div>'
+      +'<div style="font-size:12px;color:var(--text2)">'+s.niche+'</div></div>'
+      +'<div class="plant-wrap"><div class="plant-emoji">'+plant.emoji+'</div><div class="plant-label">'+plant.label+'</div></div>'
+      +'</div>'
+      +goalsHtml
+      +(goals.length?'<div class="prog-bg" style="margin-top:10px"><div class="prog-fill" style="width:'+pct+'%;background:'+s.color+'"></div></div>'
+        +'<div style="font-size:12px;color:var(--text2);margin-top:4px;font-weight:700">'+done+' de '+goals.length+' compromisos</div>'
+      :'')
+      +'</div>';
+  }).join('');
+
+  document.getElementById('mainArea').innerHTML =
+    '<div style="margin-bottom:22px"><div class="eyebrow">Vista de reunión</div>'
+    +'<div class="sech1">'+wlabel+'</div></div>'
+    +'<div class="ov-grid">'+cards+'</div>';
+}
+
+// ── MURO DE LOGROS ──
+function renderWall(){
+  var all = [];
+  students.forEach(function(s){
+    (s.achievements||[]).forEach(function(a,i){ all.push({s:s,a:a,i:i}); });
+  });
+  all.sort(function(a,b){ return (b.a.created||'').localeCompare(a.a.created||''); });
+
+  var html = '<div style="margin-bottom:22px"><div class="eyebrow">El grupo</div>'
+    +'<div class="sech1">Logros 🏆</div>'
+    +'<div class="help" style="margin-top:14px">Lo que el grupo ha logrado. <strong>Reacciona</strong> para celebrar a tus compañeras.</div></div>';
+
+  if(!all.length){
+    html += '<div class="empty-state"><div style="font-size:20px;font-weight:700;margin-bottom:6px">Sin logros todavía</div>'
+      +'<div style="font-size:15px;color:var(--text2)">Entra a tu perfil y registra tu primer logro.</div></div>';
+    document.getElementById('mainArea').innerHTML = html;
+    return;
+  }
+
+  html += '<div class="grid2">';
+  all.forEach(function(item){
+    var s=item.s, a=item.a, i=item.i;
+    var reactions = a.reactions||{};
+    var btns = EMOJIS.map(function(e){
+      var cnt = reactions[e]||0;
+      var myR = a.myReactions||[];
+      var on = (me && myR.indexOf(me.id+e)>=0) ? ' on' : '';
+      return '<button class="react-btn'+on+'" onclick="addReaction(\''+s.id+'\','+i+',\''+e+'\')">'
+        +e+'<span class="react-count">'+(cnt>0?cnt:'')+'</span></button>';
+    }).join('');
+
+    html += '<div class="card">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
+      +'<div style="width:36px;height:36px;border-radius:6px;background:'+s.color+'cc;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">'+ini(s.name)+'</div>'
+      +'<div><div style="font-size:14px;font-weight:700">'+s.name.split(' ')[0]+'</div>'
+      +'<div style="font-size:12px;color:var(--text2)">'+a.date+'</div></div>'
+      +'</div>'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:6px;line-height:1.3">🏆 '+a.title+'</div>'
+      +(a.desc?'<div style="font-size:14px;color:var(--text3);line-height:1.5;margin-bottom:10px">'+a.desc+'</div>':'')
+      +'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px">'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+btns+'</div>'
+      +(me&&me.id===s.id?'<button class="bd" onclick="deleteAchWall(\''+s.id+'\','+i+')">Borrar</button>':'')
+      +'</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('mainArea').innerHTML = html;
+}
+
+function addReaction(sid, idx, emoji){
+  if(!me){ notify('Entra con tu perfil para reaccionar.'); return; }
+  students = students.map(function(s){
+    if(s.id!==sid) return s;
+    var achs = s.achievements.slice();
+    var a = Object.assign({}, achs[idx]);
+    a.reactions = Object.assign({}, a.reactions||{});
+    a.myReactions = (a.myReactions||[]).slice();
+    var key = me.id+emoji;
+    var pos = a.myReactions.indexOf(key);
+    if(pos<0){ a.reactions[emoji]=(a.reactions[emoji]||0)+1; a.myReactions.push(key); }
+    else { a.reactions[emoji]=Math.max(0,(a.reactions[emoji]||1)-1); a.myReactions.splice(pos,1); }
+    achs[idx]=a;
+    return Object.assign({},s,{achievements:achs});
+  });
+  saveData(); renderMain();
+}
+function deleteAchWall(sid,i){
+  students = students.map(function(s){
+    if(s.id!==sid) return s;
+    var a=s.achievements.slice(); a.splice(i,1);
+    return Object.assign({},s,{achievements:a});
+  });
+  saveData(); renderSidebar(); renderMain(); notify('Logro borrado.');
+}
+
+// ── PERFIL ──
+function renderProfile(){
+  var sv = getViewing();
+  var own = (me && me.id===sv.id);
+  var plant = getPlant(sv);
+
+  var hero = '<div class="hero">'
+    +'<div class="hero-top">'
+    +'<div class="hero-av" style="background:'+sv.color+'cc">'+ini(sv.name)+'</div>'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">'
+    +'<div class="hero-name">'+sv.name+'</div>'
+    +'<span class="badge" style="background:'+sv.color+'22;color:'+sv.color+';border:1.5px solid '+sv.color+'44">'+(own?'TÚ':'Solo lectura')+'</span>'
+    +'</div>'
+    +'<div class="hero-niche">'+sv.niche+'</div>'
+    +'<div class="hero-bio">'+sv.bio+'</div>'
+    +'</div>'
+    +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0">'
+    +'<div style="font-size:38px;line-height:1">'+plant.emoji+'</div>'
+    +'<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);text-align:center">'+plant.label+'</div>'
+    +'</div>'
+    +'</div>'
+    +'</div>';
+
+  var tabs = '<div class="tabs">'
+    +'<div class="tab'+(tab==='week'?' on':'')+'" onclick="switchTab(\'week\')">📋 Esta semana</div>'
+    +'<div class="tab'+(tab==='review'?' on':'')+'" onclick="switchTab(\'review\')">💬 Cómo me fue</div>'
+    +'<div class="tab'+(tab==='proj'?' on':'')+'" onclick="switchTab(\'proj\')">🚀 Mis proyectos</div>'
+    +'<div class="tab'+(tab==='ach'?' on':'')+'" onclick="switchTab(\'ach\')">🏆 Mis logros</div>'
+    +'</div>';
+
+  var content = '';
+  if(tab==='week') content = renderWeek(sv, own);
+  else if(tab==='review') content = renderReview(sv, own);
+  else if(tab==='proj') content = renderProjects(sv, own);
+  else content = renderAch(sv, own);
+
+  document.getElementById('mainArea').innerHTML = hero + tabs + '<div id="tabContent">' + content + '</div>';
+}
+function switchTab(t){ tab=t; renderProfile(); }
+
+// ── ESTA SEMANA ──
+function renderWeek(sv, own){
+  var wkey = viewingWeek || currentWeek();
+  var isCurrent = !viewingWeek || viewingWeek===currentWeek();
+  var weeks = sv.weeks||{};
+  var goals = (weeks[wkey]&&weeks[wkey].goals)||[];
+
+  // selector de semana
+  var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  function wlabel(k){
+    var d=new Date(k+'T12:00:00');
+    var d2=new Date(d); d2.setDate(d.getDate()+6);
+    return d.getDate()+' '+MES[d.getMonth()]+' – '+d2.getDate()+' '+MES[d2.getMonth()];
+  }
+  var keys = Object.keys(weeks);
+  if(keys.indexOf(currentWeek())<0) keys.unshift(currentWeek());
+  keys.sort(function(a,b){return b.localeCompare(a);});
+  var selector = keys.length>1
+    ? '<select onchange="changeWeek(this.value)" style="font-size:14px;font-weight:700;padding:10px 14px;min-height:42px;width:auto;max-width:100%;margin-bottom:18px">'
+      +keys.map(function(k){return '<option value="'+k+'"'+(k===wkey?' selected':'')+'>'+wlabel(k)+(k===currentWeek()?' · Esta semana':'')+'</option>';}).join('')+'</select>'
+    : '<div style="font-size:14px;font-weight:700;color:var(--text2);margin-bottom:18px">'+wlabel(wkey)+(isCurrent?' · Esta semana':'')+'</div>';
+
+  var btn = own&&isCurrent ? '<button class="bp" onclick="openMetaModal()">+ Compromiso</button>' : '';
+  var html = '<div class="sech"><div><div class="eyebrow">'+sv.name.split(' ')[0]+'</div>'
+    +'<div class="sech1">Esta semana</div></div>'+btn+'</div>'
+    + selector;
+
+  if(!goals.length){
+    if(own&&isCurrent) html += '<div class="help">Escribe <strong>qué vas a lograr esta semana</strong>. Al final de la semana lo revisamos juntas.</div>';
+    html += '<div class="empty-state"><div style="font-size:18px;font-weight:700;margin-bottom:6px">Sin compromisos</div>'
+      +'<div style="font-size:15px;color:var(--text2)">'+(own?'Agrega tu primer compromiso arriba.':'Aún no hay compromisos esta semana.')+'</div></div>';
+    return html;
+  }
+
+  var done = goals.filter(function(g){return g.done;}).length;
+  var pct = Math.round(done/goals.length*100);
+  html += '<div style="margin-bottom:18px">'
+    +'<div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;color:var(--text2);margin-bottom:8px"><span>Completados</span><span>'+done+' de '+goals.length+'</span></div>'
+    +'<div class="prog-bg"><div class="prog-fill" style="width:'+pct+'%"></div></div>'
+    +'</div>';
+
+  html += '<div class="grid1">';
+  goals.forEach(function(g,i){
+    var chk = own
+      ? '<div class="chk" style="border-color:'+(g.done?'#A8FF00':'var(--border2)')+';background:'+(g.done?'#A8FF0022':'transparent')+';color:#A8FF00" onclick="toggleGoal(\''+wkey+'\','+i+')">'+(g.done?'✓':'')+'</div>'
+      : '<div class="chk" style="border-color:'+(g.done?'#A8FF00':'var(--border2)')+';background:'+(g.done?'#A8FF0022':'transparent')+'"></div>';
+    html += '<div class="row">'+chk
+      +'<div style="flex:1;font-size:16px;font-weight:700;text-decoration:'+(g.done?'line-through':'none')+';color:'+(g.done?'var(--text2)':'var(--text)')+'">'+g.title+'</div>'
+      +(own?'<button class="bd" onclick="deleteGoal(\''+wkey+'\','+i+')">Borrar</button>':'')
+      +'</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function changeWeek(k){ viewingWeek = k===currentWeek()?null:k; renderProfile(); }
+
+function toggleGoal(wkey,i){
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{goals:[]});
+    var g=w.goals.slice(); g[i]=Object.assign({},g[i],{done:!g[i].done});
+    w.goals=g; ws[wkey]=w; return{weeks:ws};
+  });
+  notify('Compromiso actualizado ✓');
+}
+function deleteGoal(wkey,i){
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{goals:[]});
+    var g=w.goals.slice(); g.splice(i,1);
+    w.goals=g; ws[wkey]=w; return{weeks:ws};
+  });
+  notify('Borrado.');
+}
+function openMetaModal(){
+  document.getElementById('genModal').innerHTML =
+    '<div class="mt">Compromiso de la semana</div>'
+    +'<div class="ms">¿Qué vas a hacer <strong>esta semana</strong>? Una cosa concreta.</div>'
+    +'<div class="ig"><label class="lbl">¿Qué vas a hacer?</label>'
+    +'<input id="mf1" placeholder="Ejemplo: Publicar 2 posts en LinkedIn"></div>'
+    +'<div class="br"><button class="bs" onclick="closeModal()">Cancelar</button>'
+    +'<button class="bp" onclick="saveGoal()">Guardar</button></div>';
+  document.getElementById('genOv').classList.add('on');
+  setTimeout(function(){document.getElementById('mf1').focus();},100);
+}
+function saveGoal(){
+  var t=document.getElementById('mf1').value.trim();
+  if(!t){alert('Escribe el compromiso.');return;}
+  var wkey=currentWeek();
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{goals:[],created:wkey});
+    var g=w.goals.slice(); g.push({title:t,done:false,created:new Date().toISOString()});
+    w.goals=g; ws[wkey]=w; return{weeks:ws};
+  });
+  closeModal(); notify('Compromiso guardado ✓');
+}
+
+// ── CÓMO ME FUE ──
+function renderReview(sv, own){
+  var wkey = currentWeek();
+  var weeks = sv.weeks||{};
+  var review = (weeks[wkey]&&weeks[wkey].review)||'';
+
+  var html = '<div class="sech"><div><div class="eyebrow">'+sv.name.split(' ')[0]+'</div>'
+    +'<div class="sech1">Cómo me fue</div></div></div>'
+    +'<div class="help">Escribe aquí <strong>cómo fue tu semana</strong>. ¿Qué lograste? ¿Qué se complicó? ¿Qué aprendiste? Lo revisamos juntas en la reunión.</div>';
+
+  if(own){
+    html += '<div class="ig"><textarea id="reviewText" style="min-height:160px;font-size:16px;line-height:1.6" placeholder="Esta semana...">'+(review||'')+'</textarea></div>'
+      +'<div style="display:flex;justify-content:flex-end">'
+      +'<button class="bp" onclick="saveReview()">Guardar</button></div>';
+  } else {
+    html += review
+      ? '<div class="card" style="font-size:16px;color:var(--text3);line-height:1.65;white-space:pre-wrap">'+review+'</div>'
+      : '<div class="empty-state"><div style="font-size:18px;font-weight:700;margin-bottom:6px">Sin reflexión esta semana</div>'
+        +'<div style="font-size:15px;color:var(--text2)">'+sv.name.split(' ')[0]+' aún no escribió cómo le fue.</div></div>';
+  }
+  return html;
+}
+function saveReview(){
+  var t=document.getElementById('reviewText').value;
+  var wkey=currentWeek();
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{goals:[]});
+    w.review=t; ws[wkey]=w; return{weeks:ws};
+  });
+  notify('Guardado ✓');
+}
+
+// ── PROYECTOS ──
+function renderProjects(sv, own){
+  var projs = sv.projects||[];
+  var btn = own ? '<button class="bp" onclick="openProjModal()">+ Proyecto</button>' : '';
+  var html = '<div class="sech"><div><div class="eyebrow">'+sv.name.split(' ')[0]+'</div>'
+    +'<div class="sech1">Mis proyectos</div></div>'+btn+'</div>';
+
+  if(!projs.length){
+    html += own ? '<div class="help">Agrega tus proyectos activos. <strong>Una línea por proyecto.</strong></div>' : '';
+    html += '<div class="empty-state"><div style="font-size:18px;font-weight:700;margin-bottom:6px">Sin proyectos</div>'
+      +'<div style="font-size:15px;color:var(--text2)">'+(own?'Agrega tu primer proyecto arriba.':'Sin proyectos todavía.')+'</div></div>';
+    return html;
+  }
+
+  html += '<div class="grid1">';
+  projs.forEach(function(p,i){
+    var st = PROJ_STATUS[p.status]||PROJ_STATUS.activo;
+    html += '<div class="row">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-size:16px;font-weight:700;margin-bottom:3px">'+p.name+'</div>'
+      +(p.desc?'<div style="font-size:13px;color:var(--text2)">'+p.desc+'</div>':'')
+      +'</div>'
+      +'<span class="proj-status" style="background:'+st.color+'22;color:'+st.color+';border:1.5px solid '+st.color+'55">'+st.label+'</span>'
+      +(own?'<div style="display:flex;gap:6px">'
+        +'<select onchange="changeProjStatus('+i+',this.value)" style="font-size:12px;padding:5px 8px;min-height:32px;width:auto;border-radius:4px">'
+        +Object.keys(PROJ_STATUS).map(function(k){return '<option value="'+k+'"'+(p.status===k?' selected':'')+'>'+PROJ_STATUS[k].label+'</option>';}).join('')
+        +'</select>'
+        +'<button class="bd" onclick="deleteProj('+i+')">Borrar</button>'
+        +'</div>':'')
+      +'</div>';
+  });
+  html += '</div>';
+  return html;
+}
+function changeProjStatus(i,v){
+  updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
+}
+function deleteProj(i){
+  updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
+  notify('Proyecto borrado.');
+}
+function openProjModal(){
+  document.getElementById('genModal').innerHTML =
+    '<div class="mt">Nuevo proyecto</div>'
+    +'<div class="ms">Un proyecto en el que estás trabajando.</div>'
+    +'<div class="ig"><label class="lbl">¿Cómo se llama?</label>'
+    +'<input id="mf1" placeholder="Ejemplo: Sitio web de Flex"></div>'
+    +'<div class="ig"><label class="lbl">Descripción breve (no es obligatorio)</label>'
+    +'<input id="mf2" placeholder="Una línea sobre qué es"></div>'
+    +'<div class="ig"><label class="lbl">Estado</label>'
+    +'<select id="mf3">'
+    +'<option value="activo">Activo</option>'
+    +'<option value="pausado">Pausado</option>'
+    +'<option value="listo">Listo ✓</option>'
+    +'</select></div>'
+    +'<div class="br"><button class="bs" onclick="closeModal()">Cancelar</button>'
+    +'<button class="bp" onclick="saveProj()">Guardar</button></div>';
+  document.getElementById('genOv').classList.add('on');
+  setTimeout(function(){document.getElementById('mf1').focus();},100);
+}
+function saveProj(){
+  var n=document.getElementById('mf1').value.trim();
+  if(!n){alert('Escribe el nombre del proyecto.');return;}
+  updateMe(function(s){
+    var ps=(s.projects||[]).slice();
+    ps.push({name:n,desc:document.getElementById('mf2').value.trim(),status:document.getElementById('mf3').value});
+    return{projects:ps};
+  });
+  closeModal(); notify('Proyecto guardado ✓');
+}
+
+// ── LOGROS ──
+function renderAch(sv, own){
+  var achs = sv.achievements||[];
+  var btn = own ? '<button class="bp" onclick="openAchModal()">+ Logro</button>' : '';
+  var html = '<div class="sech"><div><div class="eyebrow">'+sv.name.split(' ')[0]+'</div>'
+    +'<div class="sech1">Mis logros 🏆</div></div>'+btn+'</div>';
+
+  if(own) html += '<div class="help">Lo que escribas aquí <strong>lo ve todo el grupo</strong> en la pestaña Logros. Sirve para celebrar avances juntas.</div>';
+
+  if(!achs.length){
+    html += '<div class="empty-state"><div style="font-size:18px;font-weight:700;margin-bottom:6px">Sin logros todavía</div>'
+      +'<div style="font-size:15px;color:var(--text2)">Registra algo que hayas hecho. Por pequeño que sea.</div></div>';
+    return html;
+  }
+
+  html += '<div class="grid2">';
+  achs.forEach(function(a,i){
+    var total=0;
+    if(a.reactions) Object.keys(a.reactions).forEach(function(e){total+=a.reactions[e]||0;});
+    html += '<div class="card">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'
+      +'<div style="font-size:12px;font-weight:700;color:var(--text2)">'+a.date+'</div>'
+      +(total>0?'<div style="font-size:13px;color:var(--m);font-weight:700">'+total+' reacción'+(total!==1?'es':'')+'</div>':'')
+      +'</div>'
+      +'<div style="font-size:17px;font-weight:700;margin-bottom:6px;line-height:1.3">🏆 '+a.title+'</div>'
+      +(a.desc?'<div style="font-size:14px;color:var(--text3);line-height:1.5;margin-bottom:10px">'+a.desc+'</div>':'')
+      +(own?'<button class="bd" onclick="deleteAch('+i+')">Borrar</button>':'')
+      +'</div>';
+  });
+  html += '</div>';
+  return html;
+}
+function deleteAch(i){
+  updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
+  notify('Borrado.');
+}
+function openAchModal(){
+  document.getElementById('genModal').innerHTML =
+    '<div class="mt">Nuevo logro 🏆</div>'
+    +'<div class="ms">Lo que escribas aquí <strong>lo ve todo el grupo</strong>.</div>'
+    +'<div class="ig"><label class="lbl">¿Qué lograste?</label>'
+    +'<input id="mf1" placeholder="Ejemplo: Publiqué mi primer post"></div>'
+    +'<div class="ig"><label class="lbl">Cuenta más (no es obligatorio)</label>'
+    +'<textarea id="mf2" placeholder="¿Qué hiciste? ¿Qué cambió?"></textarea></div>'
+    +'<div class="br"><button class="bs" onclick="closeModal()">Cancelar</button>'
+    +'<button class="bp" onclick="saveAch()">Publicar</button></div>';
+  document.getElementById('genOv').classList.add('on');
+  setTimeout(function(){document.getElementById('mf1').focus();},100);
+}
+function saveAch(){
+  var t=document.getElementById('mf1').value.trim();
+  if(!t){alert('Escribe el logro.');return;}
+  var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
+  updateMe(function(s){
+    var a=(s.achievements||[]).slice();
+    a.push({title:t,desc:document.getElementById('mf2').value.trim(),date:fecha,created:new Date().toISOString(),reactions:{},myReactions:[]});
+    return{achievements:a};
+  });
+  closeModal(); notify('¡Logro publicado! El grupo lo verá 🏆');
+}
+
+// ── UTILS ──
+function closeModal(){ document.getElementById('genOv').classList.remove('on'); }
+function togglePeople(){
+  var el=document.getElementById('mobPeople');
+  if(el) el.classList.toggle('on');
+}
+function closePeople(){
+  var el=document.getElementById('mobPeople');
+  if(el) el.classList.remove('on');
+}
+
+// ── INICIO ──
+renderSelect();
+</script>
+</body>
+</html>
