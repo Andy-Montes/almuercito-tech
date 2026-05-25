@@ -88,6 +88,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .mobpeople{position:fixed;bottom:62px;left:0;right:0;background:var(--bg);border-top:2px solid var(--border);z-index:299;display:none;max-height:55vh;overflow-y:auto;padding:6px 0}
 .mobpeople.on{display:block}
 
+/* BOTÓN AYUDA FLOTANTE */
+#helpFab{position:fixed;right:18px;bottom:78px;width:52px;height:52px;border-radius:50%;background:var(--m);color:#fff;border:none;font-size:24px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(255,20,147,.45);z-index:250;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+#helpFab:hover{transform:scale(1.08)}
+@media(min-width:768px){#helpFab{bottom:24px;right:24px;width:56px;height:56px;font-size:26px}}
+
 /* CONTENIDO */
 .sech{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap}
 .sech1{font-size:30px;font-weight:700;line-height:1.1}
@@ -245,6 +250,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
     <button class="mnb" id="mnPpl" onclick="togglePeople()"><span>👥</span>Personas</button>
   </div>
   <div class="mobpeople" id="mobPeople"></div>
+
+  <!-- BOTÓN AYUDA FLOTANTE -->
+  <button id="helpFab" onclick="startTour()" title="¿Cómo funciona?" aria-label="Ayuda">?</button>
 </div>
 
 <div class="notif" id="notif"></div>
