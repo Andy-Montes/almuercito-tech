@@ -17,26 +17,67 @@ var SEED_STUDENTS = [
 ];
 
 // SAFE: idempotente. Crea hojas que falten, arregla headers si estan distintos,
-// y solo inserta los students seed si la hoja esta vacia. Nunca borra datos.
+// limpia columnas sobrantes, formatea week_key como texto, y solo inserta seed si vacio.
 function setup() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   Object.keys(TABS).forEach(function(name){
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
-    var lastCol = Math.max(sh.getLastColumn(), TABS[name].length);
-    var firstRow = sh.getRange(1,1,1,lastCol).getValues()[0];
-    var needsHeader = false;
-    for (var i=0; i<TABS[name].length; i++){
-      if (firstRow[i] !== TABS[name][i]) { needsHeader = true; break; }
-    }
-    if (needsHeader) {
-      sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
+    sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
+    // Limpiar headers extra a la derecha (ej. "review" duplicado en col 5)
+    var lastCol = sh.getLastColumn();
+    if (lastCol > TABS[name].length) {
+      sh.getRange(1, TABS[name].length+1, 1, lastCol - TABS[name].length).clearContent();
     }
   });
+  // Formatear week_key como texto plano para evitar autoconversion a Date
+  var weeksSh = ss.getSheetByName('weeks');
+  weeksSh.getRange('B:B').setNumberFormat('@');
   var studentsSh = ss.getSheetByName('students');
   if (studentsSh.getLastRow() < 2) {
     studentsSh.getRange(2,1,SEED_STUDENTS.length,SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
   }
-  return 'ok (no se borro nada)';
+  return 'ok (no se borro data, solo headers fix)';
+}
+
+// Limpia la hoja weeks: deduplica por (student_id, week_key) quedandose con el
+// goals_json mas largo y el review mas largo. Normaliza Date -> string. Aplica
+// numberFormat texto plano. Usar si ves filas duplicadas.
+function cleanWeeks() {
+  var ss = _ss();
+  var sh = ss.getSheetByName('weeks');
+  var values = sh.getDataRange().getValues();
+  if (values.length < 2) return 'nothing to clean';
+  var rows = values.slice(1);
+  var byKey = {};
+  var seenOrder = [];
+  rows.forEach(function(row){
+    var sid = String(row[0]||'').trim();
+    var wk = _normWeekKey(row[1]);
+    var goalsJson = String(row[2]||'[]');
+    var review = String(row[3]||'');
+    if (!sid || !/^\d{4}-\d{2}-\d{2}$/.test(wk)) return;
+    var key = sid+'|'+wk;
+    if (!byKey[key]) {
+      byKey[key] = {sid:sid, wk:wk, goalsJson:goalsJson, review:review};
+      seenOrder.push(key);
+    } else {
+      var ex = byKey[key];
+      if (goalsJson.length > ex.goalsJson.length) ex.goalsJson = goalsJson;
+      if (review.length > ex.review.length) ex.review = review;
+    }
+  });
+  // Reescribir hoja limpia
+  sh.clear();
+  sh.getRange(1,1,1,TABS.weeks.length).setValues([TABS.weeks]).setFontWeight('bold');
+  sh.getRange('B:B').setNumberFormat('@');
+  var newRows = seenOrder.map(function(k){
+    var r = byKey[k];
+    return [r.sid, r.wk, r.goalsJson, r.review];
+  });
+  if (newRows.length) {
+    sh.getRange(2,1,newRows.length,4).setValues(newRows);
+  }
+  return 'limpio: ' + rows.length + ' filas -> ' + newRows.length;
 }
 
 // PELIGRO: borra TODO y vuelve a los datos seed (PINs por defecto). Solo si quieres resetear.
@@ -56,6 +97,17 @@ function _ss() {
   return SpreadsheetApp.openById(SHEET_ID);
 }
 
+// Sheets autoconvierte strings tipo "2026-05-25" a Date. Forzamos string YYYY-MM-DD.
+function _normWeekKey(v){
+  if (v instanceof Date) {
+    var y = v.getFullYear();
+    var m = String(v.getMonth()+1); if(m.length<2) m='0'+m;
+    var d = String(v.getDate()); if(d.length<2) d='0'+d;
+    return y+'-'+m+'-'+d;
+  }
+  return String(v||'');
+}
+
 function _read(name) {
   var sh = _ss().getSheetByName(name);
   var values = sh.getDataRange().getValues();
@@ -63,7 +115,11 @@ function _read(name) {
   var headers = values.shift();
   return values.map(function(row){
     var obj = {};
-    headers.forEach(function(h,i){ obj[h] = row[i]; });
+    headers.forEach(function(h,i){
+      // Si el header se repite (ej. dos columnas 'review'), solo guardamos la primera no-vacia.
+      if (obj[h] === undefined || obj[h] === '' || obj[h] === null) obj[h] = row[i];
+    });
+    if (name === 'weeks') obj.week_key = _normWeekKey(obj.week_key);
     return obj;
   });
 }
@@ -142,27 +198,36 @@ function verifyPin(b) {
 
 function saveWeekGoals(b) {
   var sh = _ss().getSheetByName('weeks');
+  var bWk = String(b.week_key);
+  var bSid = String(b.student_id);
   var found = _findRow('weeks', function(r){
-    return r.student_id === b.student_id && r.week_key === b.week_key;
+    return String(r.student_id) === bSid && _normWeekKey(r.week_key) === bWk;
   });
   var goalsJson = String(b.goals_json || '[]');
   if (found) {
     sh.getRange(found.row, 3).setValue(goalsJson);
   } else {
-    sh.appendRow([b.student_id, b.week_key, goalsJson, '']);
+    sh.appendRow([bSid, bWk, goalsJson, '']);
+    // forzar texto plano en la celda recien creada (sheets autoconvierte fechas)
+    var newRow = sh.getLastRow();
+    sh.getRange(newRow, 2).setNumberFormat('@').setValue(bWk);
   }
   return true;
 }
 
 function saveReview(b) {
   var sh = _ss().getSheetByName('weeks');
+  var bWk = String(b.week_key);
+  var bSid = String(b.student_id);
   var found = _findRow('weeks', function(r){
-    return r.student_id === b.student_id && r.week_key === b.week_key;
+    return String(r.student_id) === bSid && _normWeekKey(r.week_key) === bWk;
   });
   if (found) {
     sh.getRange(found.row, 4).setValue(b.review);
   } else {
-    sh.appendRow([b.student_id, b.week_key, '[]', b.review]);
+    sh.appendRow([bSid, bWk, '[]', b.review]);
+    var newRow2 = sh.getLastRow();
+    sh.getRange(newRow2, 2).setNumberFormat('@').setValue(bWk);
   }
   return true;
 }
