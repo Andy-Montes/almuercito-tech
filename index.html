@@ -49,12 +49,17 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .lbl{display:block;font-size:14px;font-weight:700;margin-bottom:8px;color:var(--text)}
 .ig{margin-bottom:16px}
 
-.bp{background:var(--m);color:#fff;border:none;border-radius:6px;padding:14px 26px;font-size:15px;font-weight:700;min-height:48px}
-.bp:hover{filter:brightness(1.12)}
-.bs{background:transparent;color:var(--text);border:2px solid var(--border2);border-radius:6px;padding:12px 20px;font-size:14px;font-weight:700;min-height:48px}
+.bp{background:var(--m);color:#fff;border:none;border-radius:7px;padding:14px 26px;font-size:15px;font-weight:600;min-height:48px;font-family:var(--font-display);letter-spacing:.005em;transition:filter .15s,transform .15s}
+.bp:hover{filter:brightness(1.1)}
+.bp:active{transform:scale(.97)}
+.bs{background:transparent;color:var(--text);border:2px solid var(--border2);border-radius:7px;padding:12px 20px;font-size:14px;font-weight:600;min-height:48px;font-family:var(--font-display);letter-spacing:.005em;transition:border-color .15s,transform .15s}
 .bs:hover{border-color:var(--m)}
+.bs:active{transform:scale(.97)}
 .bsm{padding:9px 16px;font-size:13px;min-height:40px}
-.bd{background:transparent;color:#ff6b6b;border:2px solid var(--border2);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:700;min-height:36px}
+.bd{background:transparent;color:#ff6b6b;border:2px solid var(--border2);border-radius:7px;padding:7px 14px;font-size:13px;font-weight:600;min-height:36px;font-family:var(--font-display);transition:border-color .15s,transform .15s,color .15s}
+.bd:hover{border-color:#ff6b6b}
+.bd:active{transform:scale(.95)}
+button:focus-visible,.chk:focus-visible{outline:2px solid var(--m);outline-offset:2px;border-radius:7px}
 .br{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
 
 /* PANTALLAS */
@@ -65,18 +70,21 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
 /* SELECCIÓN */
 .pgrid{display:flex;flex-direction:column;gap:10px;width:100%;max-width:540px}
-.pb{background:var(--bg2);border:2px solid var(--border2);border-radius:10px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:16px;color:var(--text);width:100%;text-align:left;transition:all .15s}
-.pb:hover,.pb:active{border-color:var(--m)}
+.pb{background:var(--bg2);border:2px solid var(--border2);border-radius:12px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:16px;color:var(--text);width:100%;text-align:left;transition:transform .2s cubic-bezier(.34,1.3,.64,1),border-color .15s,box-shadow .2s}
+.pb:hover{border-color:var(--m);transform:translateX(4px);box-shadow:-4px 4px 0 0 var(--m)}
+.pb:active{transform:translateX(2px);box-shadow:-2px 2px 0 0 var(--m)}
 .pav{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;color:#fff}
 .pnm{font-family:var(--font-display);font-size:19px;font-weight:600;line-height:1.2;letter-spacing:-0.015em}
 .pni{font-size:13px;color:var(--text3);margin-top:3px;font-weight:500}
 .ppl{font-size:20px;margin-left:auto;flex-shrink:0}
 
 /* MODAL */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center;z-index:400;padding:0}
-.overlay.on{display:flex}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.84);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);display:none;align-items:flex-end;justify-content:center;z-index:400;padding:0}
+.overlay.on{display:flex;animation:fadeIn .2s ease-out}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @media(min-width:600px){.overlay{align-items:center;padding:20px}}
-.modal{background:var(--bg);border:2px solid var(--border2);border-top:4px solid var(--m);border-radius:14px 14px 0 0;padding:28px 24px;width:100%;max-height:92vh;overflow-y:auto}
+.modal{background:var(--bg);border:2px solid var(--border2);border-top:4px solid var(--m);border-radius:14px 14px 0 0;padding:28px 24px;width:100%;max-height:92vh;overflow-y:auto;animation:modalIn .28s cubic-bezier(.34,1.3,.64,1)}
+@keyframes modalIn{from{transform:translateY(24px);opacity:.6}to{transform:translateY(0);opacity:1}}
 @media(min-width:600px){.modal{border-radius:10px;width:460px;max-width:95vw}}
 .modal-lg{width:100%}
 @media(min-width:700px){.modal-lg{width:640px}}
@@ -150,8 +158,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .prog-fill{height:100%;background:var(--m);border-radius:3px;transition:width .3s}
 .grid2{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:500px){.grid2{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}}
-.card{background:var(--bg2);border:2px solid var(--border);border-radius:8px;padding:18px;transition:border-color .15s}
-.card:hover{border-color:var(--m)}
+.card{background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:18px;transition:border-color .15s,transform .2s cubic-bezier(.4,0,.2,1),box-shadow .2s}
+.card:hover{border-color:var(--m);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+body.dark .card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty-state{background:var(--bg2);border:2px dashed var(--border2);border-radius:12px;padding:36px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
 .empty-state .empty-icon{font-size:44px;line-height:1;margin-bottom:6px;filter:saturate(.85)}
 .empty-state h4{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.01em;color:var(--text)}
@@ -174,17 +183,31 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .tab:hover{color:var(--text)}
 
 /* REACCIONES */
-.react-btn{background:var(--bg);border:2px solid var(--border);border-radius:20px;padding:7px 13px;font-size:17px;cursor:pointer;min-height:40px;font-family:inherit;color:var(--text);transition:all .15s}
-.react-btn:hover,.react-btn.on{border-color:var(--m);background:var(--bg3)}
-.react-count{font-size:12px;font-weight:700;color:var(--text2);margin-left:3px}
+.react-btn{background:var(--bg);border:2px solid var(--border);border-radius:20px;padding:7px 13px;font-size:17px;cursor:pointer;min-height:40px;font-family:inherit;color:var(--text);transition:transform .18s cubic-bezier(.34,1.4,.64,1),background .15s,border-color .15s}
+.react-btn:hover{border-color:var(--m);background:var(--bg3);transform:translateY(-1px)}
+.react-btn.on{border-color:var(--m);background:var(--bg3)}
+.react-btn:active{transform:scale(.92)}
+.react-count{font-size:12px;font-weight:600;color:var(--text2);margin-left:3px;font-family:var(--font-display);font-variant-numeric:tabular-nums}
 
 /* TOGGLE */
 .theme-btn{background:var(--bg2);border:2px solid var(--border2);border-radius:20px;padding:9px 14px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;display:flex;align-items:center;gap:6px;min-height:42px}
 .theme-btn:hover{border-color:var(--m)}
 
 /* NOTIF */
-.notif{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);background:#111;border:2px solid #A8FF00;border-radius:10px;padding:14px 22px;font-size:15px;font-weight:700;color:#fff;opacity:0;transition:opacity .3s;pointer-events:none;z-index:600;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.25)}
-@media(min-width:768px){.notif{bottom:24px;right:24px;left:auto;transform:none}}
+.notif{position:fixed;bottom:74px;left:50%;transform:translateX(-50%) translateY(8px);background:#111;border:2px solid #A8FF00;border-radius:10px;padding:13px 20px;font-size:14px;font-weight:600;color:#fff;opacity:0;transition:opacity .25s cubic-bezier(.4,0,.2,1),transform .25s cubic-bezier(.4,0,.2,1);pointer-events:none;z-index:600;white-space:nowrap;box-shadow:0 8px 28px rgba(0,0,0,.35);display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);letter-spacing:.005em}
+.notif.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.notif.success{border-color:#A8FF00}
+.notif.error{border-color:#ff6b6b}
+.notif.loading{border-color:#888}
+@media(min-width:768px){.notif{bottom:24px;right:24px;left:auto;transform:translateY(8px)}.notif.show{transform:translateY(0)}}
+.spinner{display:inline-block;width:13px;height:13px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PLANT POP */
+@keyframes plantPop{0%{transform:scale(1) rotate(0)}30%{transform:scale(1.4) rotate(-8deg)}55%{transform:scale(.92) rotate(6deg)}80%{transform:scale(1.08) rotate(-2deg)}100%{transform:scale(1) rotate(0)}}
+.plant-emoji.celebrate{animation:plantPop .7s cubic-bezier(.34,1.4,.64,1)}
+@keyframes ringOut{0%{transform:scale(.4);opacity:.8}100%{transform:scale(2.4);opacity:0}}
+.celebrate-ring{position:absolute;inset:0;border-radius:50%;border:2px solid currentColor;pointer-events:none;animation:ringOut .7s ease-out forwards}
 
 /* PLANTA */
 .plant-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0}
@@ -195,8 +218,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .proj-status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px}
 
 /* OVERVIEW REUNIÓN */
-.ov-card{background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:border-color .15s}
-.ov-card:hover{border-color:var(--m)}
+.ov-card{background:var(--bg2);border:2px solid var(--border);border-radius:12px;padding:18px;cursor:pointer;transition:border-color .15s,transform .2s cubic-bezier(.4,0,.2,1),box-shadow .2s}
+.ov-card:hover{border-color:var(--m);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.06)}
+body.dark .ov-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .ov-grid{display:grid;grid-template-columns:1fr;gap:12px}
 @media(min-width:500px){.ov-grid{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}}
 </style>
@@ -468,10 +492,33 @@ function ini(n){ return (n||'?').split(' ').slice(0,2).map(function(w){return w[
 function todayStr(){ return new Date().toISOString().split('T')[0]; }
 function getViewing(){ return students.find(function(s){return s.id===viewing.id;})||viewing; }
 
-function notify(msg){
+function celebratePlants(){
+  var plants = document.querySelectorAll('.plant-emoji');
+  plants.forEach(function(el){
+    el.classList.remove('celebrate');
+    void el.offsetWidth;
+    el.classList.add('celebrate');
+    setTimeout(function(){ el.classList.remove('celebrate'); }, 750);
+  });
+}
+
+var _notifTimer = null;
+function notify(msg, type){
+  type = type || 'success';
   var n = document.getElementById('notif');
-  n.textContent = msg; n.style.opacity = 1;
-  setTimeout(function(){n.style.opacity=0;}, 2600);
+  var spin = type === 'loading' ? '<span class="spinner"></span>' : '';
+  n.className = 'notif ' + type + ' show';
+  n.innerHTML = spin + '<span>' + msg + '</span>';
+  clearTimeout(_notifTimer);
+  // loading no auto-dismiss; queda hasta que llegue success/error
+  if(type !== 'loading'){
+    _notifTimer = setTimeout(function(){ n.classList.remove('show'); }, type==='error' ? 4000 : 2400);
+  }
+}
+function notifyClear(){
+  var n = document.getElementById('notif');
+  clearTimeout(_notifTimer);
+  n.classList.remove('show');
 }
 
 function updateMe(fn){
@@ -729,11 +776,11 @@ function addReaction(sid, idx, emoji){
       return Object.assign({},s,{achievements:achs});
     });
     saveData(); renderMain();
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 function deleteAchWall(sid,i){
   if(!me || me.id !== sid){ notify('Solo el dueno puede borrar.'); return; }
-  notify('Borrando...');
+  notify('Borrando...', 'loading');
   apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
     students = students.map(function(s){
       if(s.id!==sid) return s;
@@ -741,7 +788,7 @@ function deleteAchWall(sid,i){
       return Object.assign({},s,{achievements:a});
     });
     saveData(); renderSidebar(); renderMain(); notify('Logro borrado.');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 
 // ── PERFIL ──
@@ -850,7 +897,7 @@ function _currentGoals(s, wkey){
   return (w.goals||[]).slice();
 }
 function _syncWeekGoals(wkey, newGoals, okMsg){
-  notify('Guardando...');
+  notify('Guardando...', 'loading');
   return apiPost('saveWeekGoals', {
     student_id: me.id, pin: myPin, week_key: wkey,
     goals_json: JSON.stringify(newGoals)
@@ -862,13 +909,16 @@ function _syncWeekGoals(wkey, newGoals, okMsg){
     });
     notify(okMsg);
     return true;
-  }, function(e){ notify('Error: '+e.message); return false; });
+  }, function(e){ notify('Error: '+e.message, 'error'); return false; });
 }
 function toggleGoal(wkey,i){
   var goals = _currentGoals(me, wkey);
   if(!goals[i]) return;
+  var becameDone = !goals[i].done;
   goals[i] = Object.assign({}, goals[i], {done: !goals[i].done});
-  _syncWeekGoals(wkey, goals, 'Compromiso actualizado ✓');
+  _syncWeekGoals(wkey, goals, becameDone ? '¡Cumplido! 🌱' : 'Compromiso actualizado').then(function(ok){
+    if(ok && becameDone) celebratePlants();
+  });
 }
 function deleteGoal(wkey,i){
   var goals = _currentGoals(me, wkey);
@@ -921,7 +971,7 @@ function renderReview(sv, own){
 function saveReview(){
   var t=document.getElementById('reviewText').value;
   var wkey=currentWeek();
-  notify('Guardando...');
+  notify('Guardando...', 'loading');
   apiPost('saveReview', {student_id: me.id, pin: myPin, week_key: wkey, review: t}).then(function(){
     updateMe(function(s){
       var ws=Object.assign({},s.weeks||{});
@@ -929,7 +979,7 @@ function saveReview(){
       w.review=t; ws[wkey]=w; return{weeks:ws};
     });
     notify('Guardado ✓');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 
 // ── PROYECTOS ──
@@ -969,18 +1019,18 @@ function renderProjects(sv, own){
 }
 function changeProjStatus(i,v){
   var p = (me.projects||[])[i]; if(!p) return;
-  notify('Guardando...');
+  notify('Guardando...', 'loading');
   apiPost('saveProj', {student_id: me.id, pin: myPin, index: i, name: p.name, desc: p.desc||'', status: v}).then(function(){
     updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
     notify('Actualizado ✓');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 function deleteProj(i){
-  notify('Borrando...');
+  notify('Borrando...', 'loading');
   apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'projects', index: i}).then(function(){
     updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
     notify('Proyecto borrado.');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 function openProjModal(){
   document.getElementById('genModal').innerHTML =
@@ -1006,7 +1056,7 @@ function saveProj(){
   if(!n){alert('Escribe el nombre del proyecto.');return;}
   var d=document.getElementById('mf2').value.trim();
   var st=document.getElementById('mf3').value;
-  notify('Guardando...');
+  notify('Guardando...', 'loading');
   apiPost('saveProj', {student_id: me.id, pin: myPin, name:n, desc:d, status:st}).then(function(){
     updateMe(function(s){
       var ps=(s.projects||[]).slice();
@@ -1014,7 +1064,7 @@ function saveProj(){
       return{projects:ps};
     });
     closeModal(); notify('Proyecto guardado ✓');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 
 // ── LOGROS ──
@@ -1051,11 +1101,11 @@ function renderAch(sv, own){
   return html;
 }
 function deleteAch(i){
-  notify('Borrando...');
+  notify('Borrando...', 'loading');
   apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
     updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
     notify('Borrado.');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 function openAchModal(){
   document.getElementById('genModal').innerHTML =
@@ -1075,7 +1125,7 @@ function saveAch(){
   if(!t){alert('Escribe el logro.');return;}
   var d=document.getElementById('mf2').value.trim();
   var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
-  notify('Publicando...');
+  notify('Publicando...', 'loading');
   apiPost('saveAch', {student_id: me.id, pin: myPin, title:t, desc:d, date:fecha}).then(function(){
     updateMe(function(s){
       var a=(s.achievements||[]).slice();
@@ -1083,7 +1133,7 @@ function saveAch(){
       return{achievements:a};
     });
     closeModal(); notify('¡Logro publicado! El grupo lo verá 🏆');
-  }).catch(function(e){ notify('Error: '+e.message); });
+  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
 }
 
 // ── UTILS ──
@@ -1286,12 +1336,12 @@ function maybeAutoTour(){
 // ── INICIO ──
 // Mostrar cache primero para que la UI aparezca al tiro, luego sincronizar con servidor.
 renderSelect();
-notify('Cargando...');
+notify('Cargando...', 'loading');
 reloadFromServer().then(function(){
   renderSelect();
   notify('Datos actualizados ✓');
 }).catch(function(e){
-  notify('Sin conexion al servidor. Usando datos locales.');
+  notify('Sin conexión al servidor. Usando datos locales.', 'error');
   console.error(e);
 });
 </script>
