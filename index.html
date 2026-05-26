@@ -779,35 +779,56 @@ function addReaction(sid, idx, emoji){
   var key = me.id+emoji;
   var has = (ach.myReactions||[]).indexOf(key) >= 0;
   var action = has ? 'removeReaction' : 'addReaction';
-  apiPost(action, {
-    student_id: sid, achievement_idx: idx,
-    reactor_id: me.id, pin: myPin, emoji: emoji
-  }).then(function(){
+  // Optimistic: UI cambia al tiro
+  function applyToggle(addit){
     students = students.map(function(s){
       if(s.id!==sid) return s;
       var achs = s.achievements.slice();
       var a = Object.assign({}, achs[idx]);
       a.reactions = Object.assign({}, a.reactions||{});
       a.myReactions = (a.myReactions||[]).slice();
-      if(!has){ a.reactions[emoji]=(a.reactions[emoji]||0)+1; a.myReactions.push(key); }
+      if(addit){ a.reactions[emoji]=(a.reactions[emoji]||0)+1; a.myReactions.push(key); }
       else { a.reactions[emoji]=Math.max(0,(a.reactions[emoji]||1)-1); a.myReactions.splice(a.myReactions.indexOf(key),1); }
       achs[idx]=a;
       return Object.assign({},s,{achievements:achs});
     });
+    me = students.find(function(s){return s.id===me.id;}) || me;
+    viewing = getViewing();
     saveData(); renderMain();
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  }
+  applyToggle(!has);
+  apiPost(action, {
+    student_id: sid, achievement_idx: idx,
+    reactor_id: me.id, pin: myPin, emoji: emoji
+  }).catch(function(e){
+    applyToggle(has); // revertir
+    notify('Error: '+e.message+' (revertido)', 'error');
+  });
 }
 function deleteAchWall(sid,i){
   if(!me || me.id !== sid){ notify('Solo el dueno puede borrar.'); return; }
-  notify('Borrando...', 'loading');
-  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
+  var owner = students.find(function(s){return s.id===sid;});
+  var prev = owner && (owner.achievements||[])[i]; if(!prev) return;
+  students = students.map(function(s){
+    if(s.id!==sid) return s;
+    var a=s.achievements.slice(); a.splice(i,1);
+    return Object.assign({},s,{achievements:a});
+  });
+  me = students.find(function(s){return s.id===me.id;}) || me;
+  viewing = getViewing();
+  saveData(); renderSidebar(); renderMain();
+  notify('Logro borrado.');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).catch(function(e){
     students = students.map(function(s){
       if(s.id!==sid) return s;
-      var a=s.achievements.slice(); a.splice(i,1);
+      var a=s.achievements.slice(); a.splice(i,0,prev);
       return Object.assign({},s,{achievements:a});
     });
-    saveData(); renderSidebar(); renderMain(); notify('Logro borrado.');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+    me = students.find(function(s){return s.id===me.id;}) || me;
+    viewing = getViewing();
+    saveData(); renderSidebar(); renderMain();
+    notify('Error: '+e.message+' (restaurado)', 'error');
+  });
 }
 
 // ── PERFIL ──
@@ -925,12 +946,11 @@ function _applyGoalsLocal(wkey, newGoals){
 // Optimista: aplica local primero, sincroniza al server en background, revierte si falla.
 function _syncGoalsOptimistic(wkey, prevGoals, newGoals, okMsg){
   _applyGoalsLocal(wkey, newGoals);
-  notify('Guardando...', 'loading');
+  if(okMsg) notify(okMsg);
   return apiPost('saveWeekGoals', {
     student_id: me.id, pin: myPin, week_key: wkey,
     goals_json: JSON.stringify(newGoals)
   }).then(function(){
-    if(okMsg) notify(okMsg);
     return true;
   }).catch(function(e){
     _applyGoalsLocal(wkey, prevGoals); // revertir UI
@@ -1000,15 +1020,21 @@ function renderReview(sv, own){
 function saveReview(){
   var t=document.getElementById('reviewText').value;
   var wkey=currentWeek();
-  notify('Guardando...', 'loading');
-  apiPost('saveReview', {student_id: me.id, pin: myPin, week_key: wkey, review: t}).then(function(){
+  var prevReview = ((me.weeks||{})[wkey]||{}).review || '';
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{goals:[],created:wkey});
+    w.review=t; ws[wkey]=w; return{weeks:ws};
+  });
+  notify('Guardado ✓');
+  apiPost('saveReview', {student_id: me.id, pin: myPin, week_key: wkey, review: t}).catch(function(e){
     updateMe(function(s){
       var ws=Object.assign({},s.weeks||{});
       var w=Object.assign({},ws[wkey]||{goals:[],created:wkey});
-      w.review=t; ws[wkey]=w; return{weeks:ws};
+      w.review=prevReview; ws[wkey]=w; return{weeks:ws};
     });
-    notify('Guardado ✓');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+    notify('Error al guardar review: '+e.message+' (revertido)', 'error');
+  });
 }
 
 // ── PROYECTOS ──
@@ -1048,18 +1074,21 @@ function renderProjects(sv, own){
 }
 function changeProjStatus(i,v){
   var p = (me.projects||[])[i]; if(!p) return;
-  notify('Guardando...', 'loading');
-  apiPost('saveProj', {student_id: me.id, pin: myPin, index: i, name: p.name, desc: p.desc||'', status: v}).then(function(){
-    updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
-    notify('Actualizado ✓');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  var prevStatus = p.status;
+  updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
+  apiPost('saveProj', {student_id: me.id, pin: myPin, index: i, name: p.name, desc: p.desc||'', status: v}).catch(function(e){
+    updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:prevStatus});return{projects:ps};});
+    notify('Error: '+e.message+' (revertido)', 'error');
+  });
 }
 function deleteProj(i){
-  notify('Borrando...', 'loading');
-  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'projects', index: i}).then(function(){
-    updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
-    notify('Proyecto borrado.');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  var prev = (me.projects||[])[i]; if(!prev) return;
+  updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
+  notify('Proyecto borrado.');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'projects', index: i}).catch(function(e){
+    updateMe(function(s){var ps=s.projects.slice();ps.splice(i,0,prev);return{projects:ps};});
+    notify('Error al borrar: '+e.message+' (restaurado)', 'error');
+  });
 }
 function openProjModal(){
   document.getElementById('genModal').innerHTML =
@@ -1085,15 +1114,17 @@ function saveProj(){
   if(!n){alert('Escribe el nombre del proyecto.');return;}
   var d=document.getElementById('mf2').value.trim();
   var st=document.getElementById('mf3').value;
-  notify('Guardando...', 'loading');
-  apiPost('saveProj', {student_id: me.id, pin: myPin, name:n, desc:d, status:st}).then(function(){
-    updateMe(function(s){
-      var ps=(s.projects||[]).slice();
-      ps.push({name:n,desc:d,status:st});
-      return{projects:ps};
-    });
-    closeModal(); notify('Proyecto guardado ✓');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  updateMe(function(s){
+    var ps=(s.projects||[]).slice();
+    ps.push({name:n,desc:d,status:st});
+    return{projects:ps};
+  });
+  closeModal();
+  notify('Proyecto guardado ✓');
+  apiPost('saveProj', {student_id: me.id, pin: myPin, name:n, desc:d, status:st}).catch(function(e){
+    updateMe(function(s){var ps=(s.projects||[]).slice();ps.pop();return{projects:ps};});
+    notify('Error al guardar proyecto: '+e.message+' (revertido)', 'error');
+  });
 }
 
 // ── LOGROS ──
@@ -1130,11 +1161,13 @@ function renderAch(sv, own){
   return html;
 }
 function deleteAch(i){
-  notify('Borrando...', 'loading');
-  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
-    updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
-    notify('Borrado.');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  var prev = (me.achievements||[])[i]; if(!prev) return;
+  updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
+  notify('Borrado.');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).catch(function(e){
+    updateMe(function(s){var a=s.achievements.slice();a.splice(i,0,prev);return{achievements:a};});
+    notify('Error al borrar logro: '+e.message+' (restaurado)', 'error');
+  });
 }
 function openAchModal(){
   document.getElementById('genModal').innerHTML =
@@ -1154,15 +1187,17 @@ function saveAch(){
   if(!t){alert('Escribe el logro.');return;}
   var d=document.getElementById('mf2').value.trim();
   var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
-  notify('Publicando...', 'loading');
-  apiPost('saveAch', {student_id: me.id, pin: myPin, title:t, desc:d, date:fecha}).then(function(){
-    updateMe(function(s){
-      var a=(s.achievements||[]).slice();
-      a.push({title:t,desc:d,date:fecha,created:new Date().toISOString(),reactions:{},myReactions:[]});
-      return{achievements:a};
-    });
-    closeModal(); notify('¡Logro publicado! El grupo lo verá 🏆');
-  }).catch(function(e){ notify('Error: '+e.message, 'error'); });
+  updateMe(function(s){
+    var a=(s.achievements||[]).slice();
+    a.push({title:t,desc:d,date:fecha,created:new Date().toISOString(),reactions:{},myReactions:[]});
+    return{achievements:a};
+  });
+  closeModal();
+  notify('¡Logro publicado! El grupo lo verá 🏆');
+  apiPost('saveAch', {student_id: me.id, pin: myPin, title:t, desc:d, date:fecha}).catch(function(e){
+    updateMe(function(s){var a=s.achievements.slice();a.pop();return{achievements:a};});
+    notify('Error al publicar: '+e.message+' (revertido)', 'error');
+  });
 }
 
 // ── UTILS ──
@@ -1363,12 +1398,10 @@ function maybeAutoTour(){
 }
 
 // ── INICIO ──
-// Mostrar cache primero para que la UI aparezca al tiro, luego sincronizar con servidor.
+// Mostrar cache primero para que la UI aparezca al tiro, luego sincronizar con servidor en silencio.
 renderSelect();
-notify('Cargando...', 'loading');
 reloadFromServer().then(function(){
   renderSelect();
-  notify('Datos actualizados ✓');
 }).catch(function(e){
   notify('Sin conexión al servidor. Usando datos locales.', 'error');
   console.error(e);
