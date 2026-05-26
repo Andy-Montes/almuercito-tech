@@ -288,6 +288,79 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
 <script>
 // ══════════════════════════════════════
+// API
+// ══════════════════════════════════════
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxE6hENKeKgyHIC-s48IQi2zvZEjdfhUh_eGiudFBGbDqmFbDg39Cmh8W5s5gjwYqZM/exec';
+var myPin = null;
+
+function apiGet(){
+  return fetch(APPS_SCRIPT_URL, {method:'GET'})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error || 'Error al cargar datos');
+      return j;
+    });
+}
+
+function apiPost(action, payload){
+  var body = Object.assign({action: action}, payload || {});
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(body),
+    redirect: 'follow'
+  })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error || 'Error');
+      return j.result;
+    });
+}
+
+// Convierte la data del servidor al shape que usa el frontend
+function transformServerData(data, currentUserId){
+  var byId = {};
+  (data.students||[]).forEach(function(s){
+    byId[s.id] = Object.assign({}, s, {weeks:{}, projects:[], achievements:[]});
+  });
+  (data.weeks||[]).forEach(function(w){
+    var s = byId[w.student_id]; if(!s) return;
+    var goals = [];
+    try { goals = JSON.parse(w.goals_json || '[]') || []; } catch(e){}
+    s.weeks[w.week_key] = {goals: goals, review: w.review || '', created: w.week_key};
+  });
+  (data.projects||[]).forEach(function(p){
+    var s = byId[p.student_id]; if(!s) return;
+    s.projects.push({name:p.name, desc:p.desc, status:p.status||'activo'});
+  });
+  (data.achievements||[]).forEach(function(a){
+    var s = byId[a.student_id]; if(!s) return;
+    s.achievements.push({title:a.title, desc:a.desc, date:a.date, created:a.created, reactions:{}, myReactions:[]});
+  });
+  Object.keys(byId).forEach(function(id){
+    byId[id].achievements.sort(function(a,b){return String(a.created||'').localeCompare(String(b.created||''));});
+  });
+  (data.reactions||[]).forEach(function(r){
+    var s = byId[r.student_id]; if(!s) return;
+    var ach = s.achievements[Number(r.achievement_idx)]; if(!ach) return;
+    ach.reactions[r.emoji] = (ach.reactions[r.emoji]||0) + 1;
+    if(currentUserId && r.reactor_id === currentUserId){
+      ach.myReactions.push(r.reactor_id + r.emoji);
+    }
+  });
+  return Object.keys(byId).map(function(id){return byId[id];});
+}
+
+function reloadFromServer(){
+  return apiGet().then(function(data){
+    students = transformServerData(data, me ? me.id : null);
+    if(me){ me = students.find(function(s){return s.id===me.id;}) || me; }
+    if(viewing){ viewing = students.find(function(s){return s.id===viewing.id;}) || viewing; }
+    saveData();
+  });
+}
+
+// ══════════════════════════════════════
 // DATOS
 // ══════════════════════════════════════
 var STORAGE_KEY = 'amt_v1';
@@ -317,11 +390,17 @@ var PLANTS = [
   {emoji:'🌺', label:'Floreciendo',min:4}
 ];
 
+function _fmtYMD(dt){
+  var y = dt.getFullYear();
+  var m = String(dt.getMonth()+1).padStart(2,'0');
+  var d = String(dt.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
+}
 function getMonday(d){
   var dt = d ? new Date(d+'T12:00:00') : new Date();
   var day = dt.getDay();
   dt.setDate(dt.getDate() - (day===0?6:day-1));
-  return dt.toISOString().split('T')[0];
+  return _fmtYMD(dt);
 }
 function currentWeek(){ return getMonday(); }
 
@@ -333,7 +412,7 @@ function getPlant(s){
   for(var i=0; i<4; i++){
     var d = new Date(wkey+'T12:00:00');
     d.setDate(d.getDate() - i*7);
-    var k = getMonday(d.toISOString().split('T')[0]);
+    var k = getMonday(_fmtYMD(d));
     var w = weeks[k];
     if(w && w.goals && w.goals.some(function(g){return g.done;})) active++;
   }
@@ -445,19 +524,23 @@ function submitPin(){
   var v = document.getElementById('pinInp').value.trim();
   var s = students.find(function(x){return x.id===pinTarget;});
   if(!s) return;
-  if(v === s.pin){
+  apiPost('verifyPin', {student_id: s.id, pin: v}).then(function(){
+    myPin = v;
     me = s; viewing = s; closePinModal();
-    var av = document.getElementById('hdrAv');
-    av.textContent = ini(me.name); av.style.background = me.color+'cc';
-    document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
-    screen='ov'; tab='week'; viewingWeek=null;
-    goApp(); renderSidebar(); showOv();
-    maybeAutoTour();
-  } else {
+    // Recargar para traer reacciones del usuario actual marcadas correctamente
+    reloadFromServer().catch(function(){}).then(function(){
+      var av = document.getElementById('hdrAv');
+      av.textContent = ini(me.name); av.style.background = me.color+'cc';
+      document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
+      screen='ov'; tab='week'; viewingWeek=null;
+      goApp(); renderSidebar(); showOv();
+      maybeAutoTour();
+    });
+  }).catch(function(){
     document.getElementById('pinErr').style.display = 'block';
     document.getElementById('pinInp').value = '';
     document.getElementById('pinInp').focus();
-  }
+  });
 }
 document.getElementById('pinInp').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPin(); });
 
@@ -604,28 +687,41 @@ function renderWall(){
 
 function addReaction(sid, idx, emoji){
   if(!me){ notify('Entra con tu perfil para reaccionar.'); return; }
-  students = students.map(function(s){
-    if(s.id!==sid) return s;
-    var achs = s.achievements.slice();
-    var a = Object.assign({}, achs[idx]);
-    a.reactions = Object.assign({}, a.reactions||{});
-    a.myReactions = (a.myReactions||[]).slice();
-    var key = me.id+emoji;
-    var pos = a.myReactions.indexOf(key);
-    if(pos<0){ a.reactions[emoji]=(a.reactions[emoji]||0)+1; a.myReactions.push(key); }
-    else { a.reactions[emoji]=Math.max(0,(a.reactions[emoji]||1)-1); a.myReactions.splice(pos,1); }
-    achs[idx]=a;
-    return Object.assign({},s,{achievements:achs});
-  });
-  saveData(); renderMain();
+  var owner = students.find(function(x){return x.id===sid;});
+  if(!owner) return;
+  var ach = (owner.achievements||[])[idx]; if(!ach) return;
+  var key = me.id+emoji;
+  var has = (ach.myReactions||[]).indexOf(key) >= 0;
+  var action = has ? 'removeReaction' : 'addReaction';
+  apiPost(action, {
+    student_id: sid, achievement_idx: idx,
+    reactor_id: me.id, pin: myPin, emoji: emoji
+  }).then(function(){
+    students = students.map(function(s){
+      if(s.id!==sid) return s;
+      var achs = s.achievements.slice();
+      var a = Object.assign({}, achs[idx]);
+      a.reactions = Object.assign({}, a.reactions||{});
+      a.myReactions = (a.myReactions||[]).slice();
+      if(!has){ a.reactions[emoji]=(a.reactions[emoji]||0)+1; a.myReactions.push(key); }
+      else { a.reactions[emoji]=Math.max(0,(a.reactions[emoji]||1)-1); a.myReactions.splice(a.myReactions.indexOf(key),1); }
+      achs[idx]=a;
+      return Object.assign({},s,{achievements:achs});
+    });
+    saveData(); renderMain();
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 function deleteAchWall(sid,i){
-  students = students.map(function(s){
-    if(s.id!==sid) return s;
-    var a=s.achievements.slice(); a.splice(i,1);
-    return Object.assign({},s,{achievements:a});
-  });
-  saveData(); renderSidebar(); renderMain(); notify('Logro borrado.');
+  if(!me || me.id !== sid){ notify('Solo el dueno puede borrar.'); return; }
+  notify('Borrando...');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
+    students = students.map(function(s){
+      if(s.id!==sid) return s;
+      var a=s.achievements.slice(); a.splice(i,1);
+      return Object.assign({},s,{achievements:a});
+    });
+    saveData(); renderSidebar(); renderMain(); notify('Logro borrado.');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 
 // ── PERFIL ──
@@ -726,23 +822,35 @@ function renderWeek(sv, own){
 
 function changeWeek(k){ viewingWeek = k===currentWeek()?null:k; renderProfile(); }
 
+function _currentGoals(s, wkey){
+  var w = (s.weeks||{})[wkey] || {goals:[]};
+  return (w.goals||[]).slice();
+}
+function _syncWeekGoals(wkey, newGoals, okMsg){
+  notify('Guardando...');
+  return apiPost('saveWeekGoals', {
+    student_id: me.id, pin: myPin, week_key: wkey,
+    goals_json: JSON.stringify(newGoals)
+  }).then(function(){
+    updateMe(function(s){
+      var ws=Object.assign({},s.weeks||{});
+      var w=Object.assign({},ws[wkey]||{review:'',created:wkey});
+      w.goals = newGoals; ws[wkey]=w; return {weeks:ws};
+    });
+    notify(okMsg);
+    return true;
+  }, function(e){ notify('Error: '+e.message); return false; });
+}
 function toggleGoal(wkey,i){
-  updateMe(function(s){
-    var ws=Object.assign({},s.weeks||{});
-    var w=Object.assign({},ws[wkey]||{goals:[]});
-    var g=w.goals.slice(); g[i]=Object.assign({},g[i],{done:!g[i].done});
-    w.goals=g; ws[wkey]=w; return{weeks:ws};
-  });
-  notify('Compromiso actualizado ✓');
+  var goals = _currentGoals(me, wkey);
+  if(!goals[i]) return;
+  goals[i] = Object.assign({}, goals[i], {done: !goals[i].done});
+  _syncWeekGoals(wkey, goals, 'Compromiso actualizado ✓');
 }
 function deleteGoal(wkey,i){
-  updateMe(function(s){
-    var ws=Object.assign({},s.weeks||{});
-    var w=Object.assign({},ws[wkey]||{goals:[]});
-    var g=w.goals.slice(); g.splice(i,1);
-    w.goals=g; ws[wkey]=w; return{weeks:ws};
-  });
-  notify('Borrado.');
+  var goals = _currentGoals(me, wkey);
+  goals.splice(i,1);
+  _syncWeekGoals(wkey, goals, 'Borrado.');
 }
 function openMetaModal(){
   document.getElementById('genModal').innerHTML =
@@ -759,13 +867,9 @@ function saveGoal(){
   var t=document.getElementById('mf1').value.trim();
   if(!t){alert('Escribe el compromiso.');return;}
   var wkey=currentWeek();
-  updateMe(function(s){
-    var ws=Object.assign({},s.weeks||{});
-    var w=Object.assign({},ws[wkey]||{goals:[],created:wkey});
-    var g=w.goals.slice(); g.push({title:t,done:false,created:new Date().toISOString()});
-    w.goals=g; ws[wkey]=w; return{weeks:ws};
-  });
-  closeModal(); notify('Compromiso guardado ✓');
+  var goals = _currentGoals(me, wkey);
+  goals.push({title:t, done:false, created:new Date().toISOString()});
+  _syncWeekGoals(wkey, goals, 'Compromiso guardado ✓').then(function(ok){ if(ok) closeModal(); });
 }
 
 // ── CÓMO ME FUE ──
@@ -793,12 +897,15 @@ function renderReview(sv, own){
 function saveReview(){
   var t=document.getElementById('reviewText').value;
   var wkey=currentWeek();
-  updateMe(function(s){
-    var ws=Object.assign({},s.weeks||{});
-    var w=Object.assign({},ws[wkey]||{goals:[]});
-    w.review=t; ws[wkey]=w; return{weeks:ws};
-  });
-  notify('Guardado ✓');
+  notify('Guardando...');
+  apiPost('saveReview', {student_id: me.id, pin: myPin, week_key: wkey, review: t}).then(function(){
+    updateMe(function(s){
+      var ws=Object.assign({},s.weeks||{});
+      var w=Object.assign({},ws[wkey]||{goals:[],created:wkey});
+      w.review=t; ws[wkey]=w; return{weeks:ws};
+    });
+    notify('Guardado ✓');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 
 // ── PROYECTOS ──
@@ -836,11 +943,19 @@ function renderProjects(sv, own){
   return html;
 }
 function changeProjStatus(i,v){
-  updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
+  var p = (me.projects||[])[i]; if(!p) return;
+  notify('Guardando...');
+  apiPost('saveProj', {student_id: me.id, pin: myPin, index: i, name: p.name, desc: p.desc||'', status: v}).then(function(){
+    updateMe(function(s){var ps=s.projects.slice();ps[i]=Object.assign({},ps[i],{status:v});return{projects:ps};});
+    notify('Actualizado ✓');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 function deleteProj(i){
-  updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
-  notify('Proyecto borrado.');
+  notify('Borrando...');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'projects', index: i}).then(function(){
+    updateMe(function(s){var ps=s.projects.slice();ps.splice(i,1);return{projects:ps};});
+    notify('Proyecto borrado.');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 function openProjModal(){
   document.getElementById('genModal').innerHTML =
@@ -864,12 +979,17 @@ function openProjModal(){
 function saveProj(){
   var n=document.getElementById('mf1').value.trim();
   if(!n){alert('Escribe el nombre del proyecto.');return;}
-  updateMe(function(s){
-    var ps=(s.projects||[]).slice();
-    ps.push({name:n,desc:document.getElementById('mf2').value.trim(),status:document.getElementById('mf3').value});
-    return{projects:ps};
-  });
-  closeModal(); notify('Proyecto guardado ✓');
+  var d=document.getElementById('mf2').value.trim();
+  var st=document.getElementById('mf3').value;
+  notify('Guardando...');
+  apiPost('saveProj', {student_id: me.id, pin: myPin, name:n, desc:d, status:st}).then(function(){
+    updateMe(function(s){
+      var ps=(s.projects||[]).slice();
+      ps.push({name:n,desc:d,status:st});
+      return{projects:ps};
+    });
+    closeModal(); notify('Proyecto guardado ✓');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 
 // ── LOGROS ──
@@ -905,8 +1025,11 @@ function renderAch(sv, own){
   return html;
 }
 function deleteAch(i){
-  updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
-  notify('Borrado.');
+  notify('Borrando...');
+  apiPost('deleteItem', {student_id: me.id, pin: myPin, table:'achievements', index: i}).then(function(){
+    updateMe(function(s){var a=s.achievements.slice();a.splice(i,1);return{achievements:a};});
+    notify('Borrado.');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 function openAchModal(){
   document.getElementById('genModal').innerHTML =
@@ -924,13 +1047,17 @@ function openAchModal(){
 function saveAch(){
   var t=document.getElementById('mf1').value.trim();
   if(!t){alert('Escribe el logro.');return;}
+  var d=document.getElementById('mf2').value.trim();
   var fecha=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'});
-  updateMe(function(s){
-    var a=(s.achievements||[]).slice();
-    a.push({title:t,desc:document.getElementById('mf2').value.trim(),date:fecha,created:new Date().toISOString(),reactions:{},myReactions:[]});
-    return{achievements:a};
-  });
-  closeModal(); notify('¡Logro publicado! El grupo lo verá 🏆');
+  notify('Publicando...');
+  apiPost('saveAch', {student_id: me.id, pin: myPin, title:t, desc:d, date:fecha}).then(function(){
+    updateMe(function(s){
+      var a=(s.achievements||[]).slice();
+      a.push({title:t,desc:d,date:fecha,created:new Date().toISOString(),reactions:{},myReactions:[]});
+      return{achievements:a};
+    });
+    closeModal(); notify('¡Logro publicado! El grupo lo verá 🏆');
+  }).catch(function(e){ notify('Error: '+e.message); });
 }
 
 // ── UTILS ──
@@ -992,14 +1119,16 @@ function submitChangePin(){
 
   function showErr(msg){ err.textContent = msg; err.style.display = 'block'; }
 
-  if(oldP !== me.pin){ showErr('Tu PIN actual no coincide.'); return; }
+  if(oldP !== myPin){ showErr('Tu PIN actual no coincide.'); return; }
   if(!/^[0-9]{4}$/.test(newP)){ showErr('El PIN nuevo debe ser 4 números.'); return; }
   if(newP !== newP2){ showErr('Los dos PIN nuevos no coinciden.'); return; }
   if(newP === oldP){ showErr('El PIN nuevo debe ser distinto del actual.'); return; }
 
-  updateMe(function(s){ s.pin = newP; return s; });
-  closeModal();
-  notify('🔐 PIN actualizado. No lo olvides.');
+  apiPost('changePin', {student_id: me.id, pin: myPin, new_pin: newP}).then(function(){
+    myPin = newP;
+    closeModal();
+    notify('🔐 PIN actualizado. No lo olvides.');
+  }).catch(function(e){ showErr('Error: '+e.message); });
 }
 
 // ══════════════════════════════════════
@@ -1053,7 +1182,7 @@ function endTour(){
     wasFirstTime = !localStorage.getItem(TOUR_KEY);
     localStorage.setItem(TOUR_KEY, '1');
   }catch(e){}
-  if(wasFirstTime && me && DEFAULT_PINS[me.id] === me.pin){
+  if(wasFirstTime && me && DEFAULT_PINS[me.id] === myPin){
     setTimeout(openFirstPinChange, 300);
   }
 }
@@ -1087,11 +1216,13 @@ function submitFirstPin(){
 
   if(!/^[0-9]{4}$/.test(newP)){ showErr('Debe ser 4 números.'); return; }
   if(newP !== newP2){ showErr('Los dos PIN no coinciden.'); return; }
-  if(newP === me.pin){ showErr('Elige uno distinto al temporal.'); return; }
+  if(newP === myPin){ showErr('Elige uno distinto al temporal.'); return; }
 
-  updateMe(function(s){ s.pin = newP; return s; });
-  closeModal();
-  notify('🔐 PIN guardado. ¡Que no se te olvide!');
+  apiPost('changePin', {student_id: me.id, pin: myPin, new_pin: newP}).then(function(){
+    myPin = newP;
+    closeModal();
+    notify('🔐 PIN guardado. ¡Que no se te olvide!');
+  }).catch(function(e){ showErr('Error: '+e.message); });
 }
 function tourNext(){
   if(tourIdx < TOUR_STEPS.length - 1){ tourIdx++; renderTour(); }
@@ -1127,7 +1258,16 @@ function maybeAutoTour(){
 }
 
 // ── INICIO ──
+// Mostrar cache primero para que la UI aparezca al tiro, luego sincronizar con servidor.
 renderSelect();
+notify('Cargando...');
+reloadFromServer().then(function(){
+  renderSelect();
+  notify('Datos actualizados ✓');
+}).catch(function(e){
+  notify('Sin conexion al servidor. Usando datos locales.');
+  console.error(e);
+});
 </script>
 </body>
 </html>

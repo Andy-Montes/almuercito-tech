@@ -2,7 +2,7 @@ var SHEET_ID = '1PSjeQNzz_Vz_eYmz1XHpvsGm44mYwozQnPDOdJdmb38';
 
 var TABS = {
   students: ['id','name','niche','color','pin','bio'],
-  weeks: ['student_id','week_key','goal_title','goal_done','review'],
+  weeks: ['student_id','week_key','goals_json','review'],
   projects: ['student_id','name','desc','status'],
   achievements: ['student_id','title','desc','date','created'],
   reactions: ['student_id','achievement_idx','reactor_id','emoji']
@@ -16,16 +16,40 @@ var SEED_STUDENTS = [
   ['antonio','Antonio','Facilitador - Estrategia','#A8FF00','4444','Completa tu perfil cuando entres']
 ];
 
+// SAFE: idempotente. Crea hojas que falten, arregla headers si estan distintos,
+// y solo inserta los students seed si la hoja esta vacia. Nunca borra datos.
 function setup() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  Object.keys(TABS).forEach(function(name){
+    var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+    var lastCol = Math.max(sh.getLastColumn(), TABS[name].length);
+    var firstRow = sh.getRange(1,1,1,lastCol).getValues()[0];
+    var needsHeader = false;
+    for (var i=0; i<TABS[name].length; i++){
+      if (firstRow[i] !== TABS[name][i]) { needsHeader = true; break; }
+    }
+    if (needsHeader) {
+      sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
+    }
+  });
+  var studentsSh = ss.getSheetByName('students');
+  if (studentsSh.getLastRow() < 2) {
+    studentsSh.getRange(2,1,SEED_STUDENTS.length,SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
+  }
+  return 'ok (no se borro nada)';
+}
+
+// PELIGRO: borra TODO y vuelve a los datos seed (PINs por defecto). Solo si quieres resetear.
+function resetAll() {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   Object.keys(TABS).forEach(function(name){
     var sh = ss.getSheetByName(name) || ss.insertSheet(name);
     sh.clear();
     sh.getRange(1,1,1,TABS[name].length).setValues([TABS[name]]).setFontWeight('bold');
   });
-  var students = ss.getSheetByName('students');
-  students.getRange(2,1,SEED_STUDENTS.length,SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
-  return 'ok';
+  var studentsSh = ss.getSheetByName('students');
+  studentsSh.getRange(2,1,SEED_STUDENTS.length,SEED_STUDENTS[0].length).setValues(SEED_STUDENTS);
+  return 'RESET TOTAL - todos los datos borrados';
 }
 
 function _ss() {
@@ -77,15 +101,16 @@ function doPost(e) {
     var action = body.action;
     var pin = body.pin;
     var studentId = body.student_id;
-    var pinOwner = (action === 'addReaction') ? body.reactor_id : studentId;
+    var pinOwner = (action === 'addReaction' || action === 'removeReaction') ? body.reactor_id : studentId;
     _checkPin(pinOwner, pin);
     var handlers = {
-      saveGoal: saveGoal,
-      toggleGoal: toggleGoal,
+      verifyPin: verifyPin,
+      saveWeekGoals: saveWeekGoals,
       saveReview: saveReview,
       saveProj: saveProj,
       saveAch: saveAch,
       addReaction: addReaction,
+      removeReaction: removeReaction,
       deleteItem: deleteItem,
       changePin: changePin,
       updateProfile: updateProfile
@@ -110,27 +135,23 @@ function _findRow(sheetName, predicate) {
   return null;
 }
 
-function saveGoal(b) {
+function verifyPin(b) {
+  // _checkPin already ran in doPost, so reaching here means OK.
+  return true;
+}
+
+function saveWeekGoals(b) {
   var sh = _ss().getSheetByName('weeks');
   var found = _findRow('weeks', function(r){
     return r.student_id === b.student_id && r.week_key === b.week_key;
   });
+  var goalsJson = String(b.goals_json || '[]');
   if (found) {
-    sh.getRange(found.row, 3).setValue(b.goal_title);
+    sh.getRange(found.row, 3).setValue(goalsJson);
   } else {
-    sh.appendRow([b.student_id, b.week_key, b.goal_title, false, '']);
+    sh.appendRow([b.student_id, b.week_key, goalsJson, '']);
   }
   return true;
-}
-
-function toggleGoal(b) {
-  var found = _findRow('weeks', function(r){
-    return r.student_id === b.student_id && r.week_key === b.week_key;
-  });
-  if (!found) throw new Error('Semana no existe');
-  var current = found.data.goal_done === true || String(found.data.goal_done).toLowerCase() === 'true';
-  found.sh.getRange(found.row, 4).setValue(!current);
-  return !current;
 }
 
 function saveReview(b) {
@@ -139,9 +160,9 @@ function saveReview(b) {
     return r.student_id === b.student_id && r.week_key === b.week_key;
   });
   if (found) {
-    sh.getRange(found.row, 5).setValue(b.review);
+    sh.getRange(found.row, 4).setValue(b.review);
   } else {
-    sh.appendRow([b.student_id, b.week_key, '', false, b.review]);
+    sh.appendRow([b.student_id, b.week_key, '[]', b.review]);
   }
   return true;
 }
@@ -161,7 +182,7 @@ function saveProj(b) {
     var row = idx + 2;
     sh.getRange(row, 2, 1, 3).setValues([[b.name, b.desc, b.status]]);
   } else {
-    sh.appendRow([b.student_id, b.name, b.desc, b.status || 'En curso']);
+    sh.appendRow([b.student_id, b.name, b.desc, b.status || 'activo']);
   }
   return true;
 }
@@ -184,6 +205,21 @@ function addReaction(b) {
   if (dup) return false;
   sh.appendRow([b.student_id, b.achievement_idx, b.reactor_id, b.emoji]);
   return true;
+}
+
+function removeReaction(b) {
+  var sh = _ss().getSheetByName('reactions');
+  var values = sh.getDataRange().getValues();
+  for (var i = values.length - 1; i >= 1; i--) {
+    if (String(values[i][0]) === String(b.student_id)
+        && String(values[i][1]) === String(b.achievement_idx)
+        && String(values[i][2]) === String(b.reactor_id)
+        && String(values[i][3]) === String(b.emoji)) {
+      sh.deleteRow(i + 1);
+      return true;
+    }
+  }
+  return false;
 }
 
 function changePin(b) {
@@ -218,5 +254,20 @@ function deleteItem(b) {
   }
   if (target === -1) throw new Error('Item no existe');
   sh.deleteRow(target + 2);
+
+  // Si borramos un logro, limpiar/desplazar reacciones para que los indices sigan calzando.
+  if (table === 'achievements') {
+    var rsh = _ss().getSheetByName('reactions');
+    var rvals = rsh.getDataRange().getValues();
+    for (var j = rvals.length - 1; j >= 1; j--) {
+      if (String(rvals[j][0]) !== String(b.student_id)) continue;
+      var aidx = Number(rvals[j][1]);
+      if (aidx === b.index) {
+        rsh.deleteRow(j + 1);
+      } else if (aidx > b.index) {
+        rsh.getRange(j + 1, 2).setValue(aidx - 1);
+      }
+    }
+  }
   return true;
 }

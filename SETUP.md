@@ -1,68 +1,81 @@
 # Almuercito Tech — Setup backend
 
-## 1. GitHub Pages ✅
+## Estado actual
+
 - Repo: https://github.com/Andy-Montes/almuercito-tech
 - URL: https://andy-montes.github.io/almuercito-tech/
+- Apps Script Web App: `https://script.google.com/macros/s/AKfycbxE6hENKeKgyHIC-s48IQi2zvZEjdfhUh_eGiudFBGbDqmFbDg39Cmh8W5s5gjwYqZM/exec`
+- Sheet ID: `1PSjeQNzz_Vz_eYmz1XHpvsGm44mYwozQnPDOdJdmb38`
 
-## 2. Crear Sheet + Apps Script (2 minutos)
+## Importante: actualizar el Sheet (1 vez, despues del cambio de schema)
 
-1. Abre https://script.google.com → **New project**
-2. Renombra el proyecto a `Almuercito Tech`
-3. Borra el contenido del archivo `Code.gs` y pega TODO el contenido de `Code.gs` de esta carpeta
-4. Guarda (Ctrl+S)
-5. En el dropdown de funciones (arriba) selecciona `setup` → click **Run**
-   - Te pedirá autorizar permisos (Sheets) → acepta
-   - Cuando termine, abre **View → Logs** (o Ctrl+Enter): verás `SHEET_ID = ...`
-   - Copia ese ID
-6. Vuelve al archivo `Code.gs` y pega el ID en la línea `var SHEET_ID = '';` → guarda
+Cambio el schema de la hoja `weeks` para soportar multiples compromisos por semana
+(antes: `goal_title, goal_done`; ahora: `goals_json` con un array JSON).
 
-## 3. Deploy como Web App
+**Que hacer:**
 
-1. Click en **Deploy → New deployment**
-2. Icono ⚙️ → **Web app**
-3. Configuración:
-   - Description: `v1`
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-4. **Deploy** → autoriza → copia la **Web app URL** (termina en `/exec`)
+1. Abre Apps Script y pega el nuevo `Code.gs` de esta carpeta (sobreescribe el anterior).
+2. Guarda (Ctrl+S).
+3. Corre `setup` de nuevo desde el dropdown → **Run**.
+   - Esto **borra todo** y deja las 5 hojas con headers nuevos + los 5 estudiantes seed.
+   - Si ya habia datos reales, corre `migrate` en vez de `setup` (solo arregla headers, no borra filas).
+4. **No necesitas redeploy** si ya tienes la URL `/exec` funcionando: Apps Script actualiza la version automaticamente al guardar (siempre que en el deploy hayas dejado "Who has access: Anyone").
+   - Si por alguna razon dejo de responder: Deploy → Manage deployments → editar version → "New version" → Deploy.
 
-## Resultado final (pásale esto a tu otro Claude)
-
-```
-GITHUB_PAGES_URL = https://andy-montes.github.io/almuercito-tech/
-APPS_SCRIPT_URL  = <la URL /exec que copiaste>
-SHEET_ID         = <el ID del Sheet>
-```
-
-## API de referencia
+## API actualizada
 
 **GET** `APPS_SCRIPT_URL` → devuelve:
 ```json
-{ "ok": true, "students": [...], "weeks": [...], "projects": [...], "achievements": [...], "reactions": [...] }
+{
+  "ok": true,
+  "students":     [{id, name, niche, color, bio}],
+  "weeks":        [{student_id, week_key, goals_json, review}],
+  "projects":     [{student_id, name, desc, status}],
+  "achievements": [{student_id, title, desc, date, created}],
+  "reactions":    [{student_id, achievement_idx, reactor_id, emoji}]
+}
 ```
 
-**POST** `APPS_SCRIPT_URL` con `Content-Type: text/plain` (evita preflight CORS) y body JSON:
+**POST** `APPS_SCRIPT_URL` con `Content-Type: text/plain` (evita preflight CORS) y body JSON.
+
+Acciones disponibles:
 
 ```js
-// guardar/editar meta de la semana
-{ action:"saveGoal", student_id:"andy", pin:"1111", week_key:"2026-W22", goal_title:"..." }
+// verificar PIN (login)
+{ action:"verifyPin", student_id:"andy", pin:"1111" }
 
-// marcar/desmarcar meta
-{ action:"toggleGoal", student_id:"andy", pin:"1111", week_key:"2026-W22" }
+// guardar metas de la semana (array completo, sobreescribe)
+{ action:"saveWeekGoals", student_id:"andy", pin:"1111", week_key:"2026-05-25",
+  goals_json: "[{\"title\":\"Publicar post\",\"done\":false}]" }
 
-// review semanal
-{ action:"saveReview", student_id:"andy", pin:"1111", week_key:"2026-W22", review:"..." }
+// guardar review semanal
+{ action:"saveReview", student_id:"andy", pin:"1111", week_key:"2026-05-25", review:"..." }
 
-// proyecto nuevo / editar (con index 0-based del proyecto del student)
-{ action:"saveProj", student_id:"andy", pin:"1111", name:"...", desc:"...", status:"En curso" }
-{ action:"saveProj", student_id:"andy", pin:"1111", index:0, name:"...", desc:"...", status:"Hecho" }
+// proyecto nuevo o editar (con index 0-based)
+{ action:"saveProj", student_id:"andy", pin:"1111", name:"...", desc:"...", status:"activo" }
+{ action:"saveProj", student_id:"andy", pin:"1111", index:0, name:"...", desc:"...", status:"listo" }
 
 // logro
-{ action:"saveAch", student_id:"andy", pin:"1111", title:"...", desc:"...", date:"2026-05-25" }
+{ action:"saveAch", student_id:"andy", pin:"1111", title:"...", desc:"...", date:"25 may 2026" }
 
-// reacción de otro a un logro
+// reaccion (toggle: add o remove)
 { action:"addReaction", student_id:"andy", achievement_idx:0, reactor_id:"claire", pin:"5555", emoji:"🔥" }
+{ action:"removeReaction", student_id:"andy", achievement_idx:0, reactor_id:"claire", pin:"5555", emoji:"🔥" }
 
-// borrar item (table: weeks|projects|achievements, index 0-based del student)
+// borrar item
 { action:"deleteItem", student_id:"andy", pin:"1111", table:"projects", index:0 }
+{ action:"deleteItem", student_id:"andy", pin:"1111", table:"achievements", index:0 } // tambien limpia reacciones
+
+// cambiar PIN
+{ action:"changePin", student_id:"andy", pin:"1111", new_pin:"9999" }
+
+// actualizar perfil
+{ action:"updateProfile", student_id:"andy", pin:"1111", name:"...", niche:"...", color:"#FF0000", bio:"..." }
 ```
+
+## Notas de diseno
+
+- **Multiples metas por semana:** se guardan como JSON en una celda (`goals_json`). Es legible si lo abres pero no editable como columnas.
+- **Reacciones:** el `achievement_idx` es el indice del logro dentro de la lista del estudiante, ordenado por `created` ASC. Al borrar un logro, el backend desplaza los indices superiores en la tabla `reactions` automaticamente.
+- **PIN en frontend:** despues del login se guarda en memoria (variable `myPin`), nunca en localStorage. Se pierde al refrescar y se pide de nuevo.
+- **Cache local:** el frontend guarda en localStorage como cache para mostrar UI rapido al cargar, pero siempre sincroniza con el servidor al iniciar.
