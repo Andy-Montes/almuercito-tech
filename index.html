@@ -368,9 +368,12 @@ function transformServerData(data, currentUserId){
   });
   (data.weeks||[]).forEach(function(w){
     var s = byId[w.student_id]; if(!s) return;
+    var wk = String(w.week_key || '');
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return; // skip rows con week_key invalido
     var goals = [];
     try { goals = JSON.parse(w.goals_json || '[]') || []; } catch(e){}
-    s.weeks[w.week_key] = {goals: goals, review: w.review || '', created: w.week_key};
+    if(!Array.isArray(goals)) goals = [];
+    s.weeks[wk] = {goals: goals, review: w.review || '', created: wk};
   });
   (data.projects||[]).forEach(function(p){
     var s = byId[p.student_id]; if(!s) return;
@@ -504,21 +507,29 @@ function celebratePlants(){
 }
 
 var _notifTimer = null;
+var _notifDelay = null;
 function notify(msg, type){
   type = type || 'success';
   var n = document.getElementById('notif');
-  var spin = type === 'loading' ? '<span class="spinner"></span>' : '';
+  clearTimeout(_notifTimer);
+  clearTimeout(_notifDelay);
+  // El loading aparece solo si la accion tarda >500ms (evita parpadeo molesto)
+  if(type === 'loading'){
+    _notifDelay = setTimeout(function(){
+      n.className = 'notif loading show';
+      n.innerHTML = '<span class="spinner"></span><span>'+msg+'</span>';
+    }, 500);
+    return;
+  }
+  var spin = '';
   n.className = 'notif ' + type + ' show';
   n.innerHTML = spin + '<span>' + msg + '</span>';
-  clearTimeout(_notifTimer);
-  // loading no auto-dismiss; queda hasta que llegue success/error
-  if(type !== 'loading'){
-    _notifTimer = setTimeout(function(){ n.classList.remove('show'); }, type==='error' ? 4000 : 2400);
-  }
+  _notifTimer = setTimeout(function(){ n.classList.remove('show'); }, type==='error' ? 4000 : 1800);
 }
 function notifyClear(){
   var n = document.getElementById('notif');
   clearTimeout(_notifTimer);
+  clearTimeout(_notifDelay);
   n.classList.remove('show');
 }
 
@@ -527,6 +538,7 @@ function updateMe(fn){
     if(s.id !== me.id) return s;
     return Object.assign({}, s, fn(Object.assign({}, s)));
   });
+  me = students.find(function(s){return s.id===me.id;}) || me;
   viewing = getViewing();
   saveData();
   renderSidebar();
@@ -590,22 +602,28 @@ function submitPin(){
   var v = document.getElementById('pinInp').value.trim();
   var s = students.find(function(x){return x.id===pinTarget;});
   if(!s) return;
+  var btn = document.querySelector('#pinOv .bp');
+  if(btn){ btn.disabled = true; btn.textContent = 'Entrando...'; }
   apiPost('verifyPin', {student_id: s.id, pin: v}).then(function(){
     myPin = v;
     me = s; viewing = s; closePinModal();
-    // Recargar para traer reacciones del usuario actual marcadas correctamente
-    reloadFromServer().catch(function(){}).then(function(){
-      var av = document.getElementById('hdrAv');
-      av.textContent = ini(me.name); av.style.background = me.color+'cc';
-      document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
-      screen='ov'; tab='week'; viewingWeek=null;
-      goApp(); renderSidebar(); showOv();
-      maybeAutoTour();
-    });
+    // Mostrar app al tiro con datos en cache
+    var av = document.getElementById('hdrAv');
+    av.textContent = ini(me.name); av.style.background = me.color+'cc';
+    document.getElementById('hdrNom').textContent = me.name.split(' ')[0];
+    screen='ov'; tab='week'; viewingWeek=null;
+    goApp(); renderSidebar(); showOv();
+    // Sincronizar con servidor en background, sin bloquear UI
+    reloadFromServer().then(function(){
+      renderSidebar(); renderMain();
+    }).catch(function(){});
+    maybeAutoTour();
   }).catch(function(){
     document.getElementById('pinErr').style.display = 'block';
     document.getElementById('pinInp').value = '';
     document.getElementById('pinInp').focus();
+  }).then(function(){
+    if(btn){ btn.disabled = false; btn.textContent = 'Entrar'; }
   });
 }
 document.getElementById('pinInp').addEventListener('keydown', function(e){ if(e.key==='Enter') submitPin(); });
@@ -847,7 +865,7 @@ function renderWeek(sv, own){
     var d2=new Date(d); d2.setDate(d.getDate()+6);
     return d.getDate()+' '+MES[d.getMonth()]+' – '+d2.getDate()+' '+MES[d2.getMonth()];
   }
-  var keys = Object.keys(weeks);
+  var keys = Object.keys(weeks).filter(function(k){return /^\d{4}-\d{2}-\d{2}$/.test(k);});
   if(keys.indexOf(currentWeek())<0) keys.unshift(currentWeek());
   keys.sort(function(a,b){return b.localeCompare(a);});
   var selector = keys.length>1
@@ -897,34 +915,42 @@ function _currentGoals(s, wkey){
   var w = (s.weeks||{})[wkey] || {goals:[]};
   return (w.goals||[]).slice();
 }
-function _syncWeekGoals(wkey, newGoals, okMsg){
+function _applyGoalsLocal(wkey, newGoals){
+  updateMe(function(s){
+    var ws=Object.assign({},s.weeks||{});
+    var w=Object.assign({},ws[wkey]||{review:'',created:wkey});
+    w.goals = newGoals; ws[wkey]=w; return {weeks:ws};
+  });
+}
+// Optimista: aplica local primero, sincroniza al server en background, revierte si falla.
+function _syncGoalsOptimistic(wkey, prevGoals, newGoals, okMsg){
+  _applyGoalsLocal(wkey, newGoals);
   notify('Guardando...', 'loading');
   return apiPost('saveWeekGoals', {
     student_id: me.id, pin: myPin, week_key: wkey,
     goals_json: JSON.stringify(newGoals)
   }).then(function(){
-    updateMe(function(s){
-      var ws=Object.assign({},s.weeks||{});
-      var w=Object.assign({},ws[wkey]||{review:'',created:wkey});
-      w.goals = newGoals; ws[wkey]=w; return {weeks:ws};
-    });
-    notify(okMsg);
+    if(okMsg) notify(okMsg);
     return true;
-  }, function(e){ notify('Error: '+e.message, 'error'); return false; });
-}
-function toggleGoal(wkey,i){
-  var goals = _currentGoals(me, wkey);
-  if(!goals[i]) return;
-  var becameDone = !goals[i].done;
-  goals[i] = Object.assign({}, goals[i], {done: !goals[i].done});
-  _syncWeekGoals(wkey, goals, becameDone ? '¡Cumplido! 🌱' : 'Compromiso actualizado').then(function(ok){
-    if(ok && becameDone) celebratePlants();
+  }).catch(function(e){
+    _applyGoalsLocal(wkey, prevGoals); // revertir UI
+    notify('Error: '+e.message+' (revertido)', 'error');
+    return false;
   });
 }
+function toggleGoal(wkey,i){
+  var prev = _currentGoals(me, wkey);
+  if(!prev[i]) return;
+  var becameDone = !prev[i].done;
+  var next = prev.slice();
+  next[i] = Object.assign({}, next[i], {done: becameDone});
+  if(becameDone) celebratePlants();
+  _syncGoalsOptimistic(wkey, prev, next, becameDone ? '¡Cumplido! 🌱' : '');
+}
 function deleteGoal(wkey,i){
-  var goals = _currentGoals(me, wkey);
-  goals.splice(i,1);
-  _syncWeekGoals(wkey, goals, 'Borrado.');
+  var prev = _currentGoals(me, wkey);
+  var next = prev.slice(); next.splice(i,1);
+  _syncGoalsOptimistic(wkey, prev, next, 'Borrado.');
 }
 function openMetaModal(){
   document.getElementById('genModal').innerHTML =
@@ -941,9 +967,11 @@ function saveGoal(){
   var t=document.getElementById('mf1').value.trim();
   if(!t){alert('Escribe el compromiso.');return;}
   var wkey=currentWeek();
-  var goals = _currentGoals(me, wkey);
-  goals.push({title:t, done:false, created:new Date().toISOString()});
-  _syncWeekGoals(wkey, goals, 'Compromiso guardado ✓').then(function(ok){ if(ok) closeModal(); });
+  var prev = _currentGoals(me, wkey);
+  var next = prev.slice();
+  next.push({title:t, done:false, created:new Date().toISOString()});
+  closeModal();
+  _syncGoalsOptimistic(wkey, prev, next, 'Compromiso guardado ✓');
 }
 
 // ── CÓMO ME FUE ──
