@@ -25,14 +25,22 @@
 <meta name="twitter:image" content="https://andy-montes.github.io/almuercito-tech/og.png">
 
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🌳%3C/text%3E%3C/svg%3E">
-<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Atkinson Hyperlegible',system-ui,sans-serif;font-size:17px;line-height:1.55;transition:background .2s,color .2s}
+:root{
+  --font-display:'Space Grotesk','Atkinson Hyperlegible',system-ui,sans-serif;
+  --font-body:'Atkinson Hyperlegible',system-ui,sans-serif;
+  --m:#FF1493;--ye:#FFD60A;--gr:#A8FF00;--or:#FF3B00;--pu:#BF00FF;--cy:#00F0FF;
+}
+body{font-family:var(--font-body);font-size:17px;line-height:1.55;transition:background .2s,color .2s;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 body.dark{--bg:#0a0a0a;--bg2:#161616;--bg3:#1e1e1e;--border:#252525;--border2:#333;--text:#f0f0f0;--text2:#888;--text3:#bbb;--input:#161616}
 body.light{--bg:#f5f4f0;--bg2:#eeecea;--bg3:#fff;--border:#d8d6d2;--border2:#bbb;--text:#111;--text2:#555;--text3:#333;--input:#fff}
 body{background:var(--bg);color:var(--text)}
-:root{--m:#FF1493;--ye:#FFD60A;--gr:#A8FF00;--or:#FF3B00;--pu:#BF00FF;--cy:#00F0FF}
+.display{font-family:var(--font-display);letter-spacing:-0.02em;text-wrap:balance}
+p,.body-pretty{text-wrap:pretty}
 
 button{font-family:inherit;cursor:pointer;transition:all .15s}
 input,select,textarea{font-family:inherit;background:var(--input);color:var(--text);border:2px solid var(--border2);border-radius:6px;padding:13px 16px;font-size:16px;outline:none;width:100%;transition:border-color .15s}
@@ -60,8 +68,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .pb{background:var(--bg2);border:2px solid var(--border2);border-radius:10px;padding:16px 20px;cursor:pointer;display:flex;align-items:center;gap:16px;color:var(--text);width:100%;text-align:left;transition:all .15s}
 .pb:hover,.pb:active{border-color:var(--m)}
 .pav{width:52px;height:52px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:700;flex-shrink:0;color:#fff}
-.pnm{font-size:18px;font-weight:700;line-height:1.2}
-.pni{font-size:13px;color:var(--text3);margin-top:3px}
+.pnm{font-family:var(--font-display);font-size:19px;font-weight:600;line-height:1.2;letter-spacing:-0.015em}
+.pni{font-size:13px;color:var(--text3);margin-top:3px;font-weight:500}
 .ppl{font-size:20px;margin-left:auto;flex-shrink:0}
 
 /* MODAL */
@@ -72,8 +80,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 @media(min-width:600px){.modal{border-radius:10px;width:460px;max-width:95vw}}
 .modal-lg{width:100%}
 @media(min-width:700px){.modal-lg{width:640px}}
-.mt{font-size:20px;font-weight:700;margin-bottom:6px}
-.ms{font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+.mt{font-family:var(--font-display);font-size:22px;font-weight:600;letter-spacing:-0.02em;margin-bottom:6px;line-height:1.2}
+.ms{font-size:15px;color:var(--text2);margin-bottom:20px;line-height:1.55;text-wrap:pretty}
 
 /* APP */
 .hdr{border-bottom:2px solid var(--border);padding:12px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--bg);gap:10px}
@@ -84,13 +92,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 /* SIDEBAR desktop */
 .sb{display:none;flex-direction:column;width:250px;border-right:2px solid var(--border);overflow-y:auto;flex-shrink:0;padding:18px 0;background:var(--bg)}
 @media(min-width:768px){.sb{display:flex}}
-.sbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--text2);padding:0 16px 10px}
+.sbl{font-family:var(--font-display);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--text2);padding:0 16px 10px}
 .si{padding:12px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;border-left:3px solid transparent;min-height:56px;transition:background .15s}
 .si:hover{background:var(--bg2)}
 .si.on{background:var(--bg2);border-left-color:var(--m)}
 .sav{width:34px;height:34px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
-.snm{font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sni{font-size:11px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.snm{font-family:var(--font-display);font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.01em}
+.sni{font-size:11px;color:var(--text2);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .sdv{height:2px;background:var(--border);margin:12px 16px}
 .snav{padding:12px 16px;cursor:pointer;font-size:14px;font-weight:700;color:var(--text2);border-left:3px solid transparent;min-height:46px;display:flex;align-items:center;gap:8px;transition:all .15s}
 .snav:hover{color:var(--text)}
@@ -124,9 +132,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 
 /* CONTENIDO */
 .sech{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:22px;gap:12px;flex-wrap:wrap}
-.sech1{font-size:30px;font-weight:700;line-height:1.1}
-@media(min-width:600px){.sech1{font-size:36px}}
-.eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:var(--m);margin-bottom:8px}
+.sech1{font-family:var(--font-display);font-size:30px;font-weight:600;line-height:1.05;letter-spacing:-0.025em;text-wrap:balance}
+@media(min-width:600px){.sech1{font-size:38px}}
+.eyebrow{font-family:var(--font-display);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:var(--m);margin-bottom:8px}
 .help{background:var(--bg2);border:2px solid var(--border);border-left:4px solid var(--ye);border-radius:6px;padding:14px 18px;margin-bottom:20px;font-size:15px;color:var(--text3);line-height:1.5}
 .help strong{color:var(--text)}
 .grid1{display:flex;flex-direction:column;gap:10px}
@@ -144,9 +152,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 .hero{background:var(--bg2);border:2px solid var(--border);border-top:4px solid var(--m);border-radius:10px;padding:20px;margin-bottom:20px}
 .hero-top{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
 .hero-av{width:60px;height:60px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;color:#fff}
-.hero-name{font-size:22px;font-weight:700;line-height:1.2;margin-bottom:4px}
-.hero-niche{font-size:14px;color:var(--text2);font-weight:700;margin-bottom:6px}
-.hero-bio{font-size:15px;color:var(--text3);line-height:1.55}
+.hero-name{font-family:var(--font-display);font-size:24px;font-weight:600;line-height:1.15;letter-spacing:-0.02em;margin-bottom:4px}
+.hero-niche{font-size:14px;color:var(--text2);font-weight:500;margin-bottom:6px;letter-spacing:.01em}
+.hero-bio{font-size:15px;color:var(--text3);line-height:1.6;text-wrap:pretty}
 .badge{font-size:12px;font-weight:700;padding:4px 12px;border-radius:4px;display:inline-flex;align-items:center;gap:4px}
 
 /* TABS */
@@ -188,9 +196,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5}
 <!-- SELECCIÓN -->
 <div id="scSelect" class="on">
   <div style="text-align:center;max-width:540px;width:100%">
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.25em;color:var(--m);margin-bottom:8px">Almuercito Tech</div>
-    <div style="font-size:38px;font-weight:700;line-height:1.1">Elige tu nombre<span style="color:var(--m)">.</span></div>
-    <div style="font-size:16px;color:var(--text2);margin-top:10px">Pincha tu tarjeta. Te pedirá tu PIN.</div>
+    <div style="font-family:var(--font-display);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.22em;color:var(--m);margin-bottom:12px">Almuercito Tech</div>
+    <div style="font-family:var(--font-display);font-size:44px;font-weight:600;line-height:1.02;letter-spacing:-0.035em;text-wrap:balance">Elige tu nombre<span style="color:var(--m)">.</span></div>
+    <div style="font-size:16px;color:var(--text2);margin-top:14px;text-wrap:pretty">Pincha tu tarjeta. Te pedirá tu PIN.</div>
   </div>
   <div class="pgrid" id="profGrid"></div>
   <button class="theme-btn" onclick="toggleTheme()">
